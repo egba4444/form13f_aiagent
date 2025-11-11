@@ -1,0 +1,47 @@
+version: '3.8'
+
+# Production Docker Compose Configuration
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  postgres:
+    restart: always
+    environment:
+      POSTGRES_DB: form13f
+      POSTGRES_USER: form13f_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Optional: Add backup volume
+      - ./backups:/backups
+
+  api:
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://form13f_user:${DB_PASSWORD}@postgres:5432/form13f
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      SEC_USER_AGENT: ${SEC_USER_AGENT}
+      LOG_LEVEL: warning
+      ENVIRONMENT: production
+    # Production command (no --reload)
+    command: uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --workers 4
+    volumes:
+      - ./data:/app/data:ro  # Read-only in production
+      - ./logs:/app/logs
+    # Resource limits for production
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  form13f_network:
+    driver: bridge

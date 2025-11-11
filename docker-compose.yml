@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: form13f_postgres
+    environment:
+      POSTGRES_DB: form13f
+      POSTGRES_USER: form13f_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme123}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U form13f_user -d form13f"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - form13f_network
+
+  # Qdrant Vector Database (for Phase 7 - RAG)
+  # Uncomment when implementing Phase 7
+  # qdrant:
+  #   image: qdrant/qdrant:latest
+  #   container_name: form13f_qdrant
+  #   ports:
+  #     - "6333:6333"  # HTTP API
+  #     - "6334:6334"  # gRPC
+  #   volumes:
+  #     - qdrant_data:/qdrant/storage
+  #   environment:
+  #     - QDRANT__SERVICE__GRPC_PORT=6334
+  #   networks:
+  #     - form13f_network
+
+  # FastAPI Application
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: form13f_api
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://form13f_user:${DB_PASSWORD:-changeme123}@postgres:5432/form13f
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      SEC_USER_AGENT: ${SEC_USER_AGENT}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - form13f_network
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+    # Development mode: use --reload
+    # Production mode: remove --reload flag
+    command: uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  postgres_data:
+    driver: local
+  # qdrant_data:
+  #   driver: local
+
+networks:
+  form13f_network:
+    driver: bridge
