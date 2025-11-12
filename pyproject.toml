@@ -35,7 +35,7 @@ dependencies = [
     "sqlparse>=0.4.4",
 
     # AI/LLM
-    "anthropic>=0.18.0",
+    "litellm>=1.53.0",
 
     # API
     "fastapi>=0.109.0",

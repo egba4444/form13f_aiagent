@@ -44,7 +44,8 @@ Claude Generates Natural Language Answer
 | Component | Technology |
 |-----------|-----------|
 | Language | Python 3.11+ |
-| LLM | Claude 3.5 Sonnet |
+| LLM Provider | LiteLLM (100+ providers) |
+| LLM | Claude 3.5 Sonnet (default) |
 | Database | PostgreSQL 16+ |
 | API Framework | FastAPI |
 | UI | Streamlit |
@@ -52,6 +53,7 @@ Claude Generates Natural Language Answer
 | Migrations | Alembic |
 | HTTP Client | httpx |
 | Testing | pytest |
+| Package Manager | uv (10x faster than pip) |
 
 ## 📋 Implementation Phases
 
