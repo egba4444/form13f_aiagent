@@ -9,14 +9,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
     libpq-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY pyproject.toml ./
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir poetry && \
-    poetry config virtualenvs.create false && \
-    poetry install --no-dev --no-interaction --no-ansi
+# Install uv (fast Python package installer)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Copy dependency files
+COPY pyproject.toml README.md ./
+COPY src/ ./src/
+
+# Install Python dependencies using uv (much faster than pip)
+RUN uv pip install --system --no-cache .
 
 # Stage 2: Runtime
 FROM python:3.11-slim

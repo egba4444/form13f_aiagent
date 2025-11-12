@@ -72,10 +72,11 @@ Claude Generates Natural Language Answer
 ### Prerequisites
 
 - Python 3.11+
+- [uv](https://docs.astral.sh/uv/) (recommended) or pip
 - Docker and Docker Compose
 - Anthropic API key (for Claude)
 
-### Installation
+### Installation (Docker - Recommended)
 
 1. **Clone repository**
 ```bash
@@ -115,6 +116,51 @@ docker-compose exec api python -m src.ingestion.ingest --folder /app/data/raw
 - API: http://localhost:8000
 - API Docs: http://localhost:8000/docs
 - Streamlit UI: http://localhost:8501
+
+### Installation (Local Development with uv)
+
+1. **Clone repository**
+```bash
+git clone https://github.com/egba4444/form13f_aiagent.git
+cd form13f_aiagent
+```
+
+2. **Install dependencies with uv** (10x faster than pip)
+```bash
+# Install uv if you don't have it
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Create virtual environment and install dependencies
+uv venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+uv pip install -e ".[dev]"
+```
+
+3. **Start PostgreSQL**
+```bash
+docker-compose up -d postgres
+```
+
+4. **Configure environment**
+```bash
+cp .env.example .env
+# Edit .env with your Anthropic API key and DB password
+```
+
+5. **Run migrations**
+```bash
+alembic upgrade head
+```
+
+6. **Ingest 13F data**
+```bash
+python -m src.ingestion.ingest --folder data/raw
+```
+
+7. **Start API locally**
+```bash
+uvicorn src.api.main:app --reload
+```
 
 ## 📁 Project Structure
 
