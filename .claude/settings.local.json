@@ -17,7 +17,8 @@
       "Bash(.venv/Scripts/python:*)",
       "Bash(.venv/Scripts/alembic init alembic)",
       "Bash(docker compose:*)",
-      "Bash(.venv/Scripts/alembic revision:*)"
+      "Bash(.venv/Scripts/alembic revision:*)",
+      "Bash(where:*)"
     ],
     "deny": [],
     "ask": []

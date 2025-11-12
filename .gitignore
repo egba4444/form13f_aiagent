@@ -34,9 +34,8 @@ ENV/
 *~
 
 # Environment Variables
-.env
-.env.local
-.env.*.local
+.env                    # Active config (gitignored - contains secrets)
+# Note: .env.local and .env.supabase are templates (committed to repo)
 
 # Database
 *.db
