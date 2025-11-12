@@ -41,20 +41,17 @@ managers (1) ──< (N) filings (1) ──< (N) holdings (N) >── (1) issuer
 
 ## Usage
 
-### Running Migrations
+### Setting Up Schema
 
 ```bash
 # Start PostgreSQL
 docker compose up -d postgres
 
-# Run migrations
-alembic upgrade head
+# Create tables from SQL schema
+python scripts/setup_database.py
 
-# Rollback one migration
-alembic downgrade -1
-
-# Show current version
-alembic current
+# Or manually with psql
+psql -h localhost -U form13f_user -d form13f -f schema/001_initial_schema.sql
 ```
 
 ### Loading Data

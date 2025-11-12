@@ -39,8 +39,8 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application code
 COPY src/ ./src/
-COPY alembic.ini ./
-COPY alembic/ ./alembic/
+COPY schema/ ./schema/
+COPY scripts/ ./scripts/
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && \

@@ -50,7 +50,6 @@ Claude Generates Natural Language Answer
 | API Framework | FastAPI |
 | UI | Streamlit |
 | ORM | SQLAlchemy 2.0 |
-| Migrations | Alembic |
 | HTTP Client | httpx |
 | Testing | pytest |
 | Package Manager | uv (10x faster than pip) |

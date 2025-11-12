@@ -16,7 +16,7 @@ scripts\use-docker.bat
 docker compose up -d postgres
 
 # 3. Create tables
-.venv\Scripts\alembic upgrade head
+.venv\Scripts\python scripts/setup_database.py
 
 # 4. Load data
 .venv\Scripts\python -m src.db.loader data/raw
@@ -41,7 +41,7 @@ docker compose up -d postgres
 scripts\use-supabase.bat
 
 # 3. Create tables (runs on Supabase)
-.venv\Scripts\alembic upgrade head
+.venv\Scripts\python scripts/setup_database.py
 
 # 4. Load data (inserts into Supabase)
 .venv\Scripts\python -m src.db.loader data/raw
@@ -106,10 +106,10 @@ Replace `[YOUR-PASSWORD]` with your actual database password.
 
 ### Create Tables (Run Once)
 ```bash
-.venv\Scripts\alembic upgrade head
+.venv\Scripts\python scripts/setup_database.py
 ```
 
-This runs the migration that creates:
+This runs the SQL schema file (`schema/001_initial_schema.sql`) that creates:
 - `managers` table
 - `issuers` table
 - `filings` table
