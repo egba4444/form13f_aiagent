@@ -14,7 +14,10 @@
       "Bash(uv pip install:*)",
       "Bash(uv venv:*)",
       "Bash(.venv/Scripts/python -m pytest:*)",
-      "Bash(.venv/Scripts/python:*)"
+      "Bash(.venv/Scripts/python:*)",
+      "Bash(.venv/Scripts/alembic init alembic)",
+      "Bash(docker compose:*)",
+      "Bash(.venv/Scripts/alembic revision:*)"
     ],
     "deny": [],
     "ask": []
