@@ -7,7 +7,9 @@
       "Bash(git push:*)",
       "Read(//c/Users/Hodol/Downloads/01JUN2025-31AUG2025_form13f/**)",
       "Bash(git add:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(python -m src.ingestion.ingest:*)",
+      "Bash(pip install pydantic)"
     ],
     "deny": [],
     "ask": []

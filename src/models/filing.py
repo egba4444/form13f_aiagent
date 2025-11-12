@@ -9,29 +9,46 @@ class FilingMetadata(BaseModel):
     """
     Metadata about a Form 13F filing.
 
-    This corresponds to the cover page and summary information.
+    Combined from SUBMISSION.tsv, COVERPAGE.tsv, and SUMMARYPAGE.tsv.
     """
 
     accession_number: str = Field(
         ...,
         description="SEC filing identifier (e.g., '0001067983-25-000001')",
-        pattern=r'^\d{10}-\d{2}-\d{6}$'
+        max_length=25
     )
     cik: str = Field(
         ...,
-        description="Central Index Key - 10-digit manager identifier",
-        pattern=r'^\d{10}$'
+        description="Central Index Key - manager identifier",
+        max_length=10
     )
-    manager_name: str = Field(..., description="Name of institutional manager")
     filing_date: date = Field(..., description="Date filing was submitted to SEC")
     period_of_report: date = Field(..., description="Quarter-end date")
-    total_value_thousands: int = Field(
+    submission_type: str = Field(
         ...,
-        description="Total portfolio value in thousands of dollars",
+        description="13F-HR (holdings report), 13F-NT (notice), or amendment",
+        max_length=10
+    )
+
+    # From COVERPAGE.tsv
+    manager_name: str = Field(..., description="Name of institutional manager", max_length=150)
+    report_type: str = Field(
+        ...,
+        description="Report type: 13F holdings report, 13F notice, or 13F combination report",
+        max_length=30
+    )
+
+    # From SUMMARYPAGE.tsv
+    total_value: int = Field(
+        ...,
+        description="Total portfolio value in dollars (not thousands!)",
         ge=0
     )
-    number_of_holdings: int = Field(..., description="Count of positions", ge=0)
-    raw_xml_url: Optional[str] = None
+    number_of_holdings: int = Field(
+        ...,
+        description="Count of positions (table entry total)",
+        ge=0
+    )
 
     @field_validator('cik')
     @classmethod
@@ -39,15 +56,22 @@ class FilingMetadata(BaseModel):
         """Ensure CIK is zero-padded to 10 digits."""
         return v.zfill(10)
 
+    @property
+    def total_value_millions(self) -> float:
+        """Total portfolio value in millions of dollars."""
+        return self.total_value / 1_000_000
+
     class Config:
         json_schema_extra = {
             "example": {
                 "accession_number": "0001067983-25-000001",
                 "cik": "0001067983",
-                "manager_name": "BERKSHIRE HATHAWAY INC",
                 "filing_date": "2025-02-14",
                 "period_of_report": "2024-12-31",
-                "total_value_thousands": 390500000,
+                "submission_type": "13F-HR",
+                "manager_name": "BERKSHIRE HATHAWAY INC",
+                "report_type": "13F HOLDINGS REPORT",
+                "total_value": 390500000000,
                 "number_of_holdings": 45
             }
         }

@@ -1,6 +1,5 @@
 """Data ingestion components for SEC Form 13F filings."""
 
-from .edgar_client import SECEdgarClient
-from .parser import Form13FParser
+from .tsv_parser import Form13FTSVParser
 
-__all__ = ["SECEdgarClient", "Form13FParser"]
+__all__ = ["Form13FTSVParser"]
