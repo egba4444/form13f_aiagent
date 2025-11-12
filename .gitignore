@@ -49,11 +49,14 @@ data/cache/*
 !data/processed/.gitkeep
 !data/cache/.gitkeep
 
-# Keep 13F XML forms in data/raw/
-# Ignore other files but allow .xml files and README.md
+# Keep 13F data files in data/raw/
+# Allow TSV, JSON, and documentation files
 data/raw/*
 !data/raw/.gitkeep
 !data/raw/*.xml
+!data/raw/*.tsv
+!data/raw/*.json
+!data/raw/*.htm
 !data/raw/README.md
 
 # Jupyter Notebooks

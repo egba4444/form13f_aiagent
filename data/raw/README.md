@@ -1,25 +1,33 @@
 # Form 13F Data Files
 
-Place your Form 13F XML files in this directory.
+This directory contains Form 13F bulk data from the SEC in TSV format.
 
 ## File Format
 
-- **Format**: XML files
-- **Naming**: Any naming convention (e.g., `ACCESSION_NUMBER.xml`, `CIK_YYYYMMDD.xml`)
-- **Source**: SEC EDGAR Form 13F filings
+The data is provided in tab-separated value (TSV) files:
 
-## Example
+### Core Files
+
+- **SUBMISSION.tsv** - Filing metadata (accession number, CIK, filing date, period of report)
+- **COVERPAGE.tsv** - Filing manager details (name, address, report type)
+- **INFOTABLE.tsv** - Holdings data (CUSIP, issuer name, value, shares, voting authority)
+- **SUMMARYPAGE.tsv** - Summary statistics (total entries, total value)
+- **SIGNATURE.tsv** - Signatory information
+- **OTHERMANAGER.tsv** - Other managers included in filing
+- **OTHERMANAGER2.tsv** - Additional other manager data
+- **FORM13F_metadata.json** - Complete schema definition
+- **FORM13F_readme.htm** - SEC documentation
+
+## Current Data
 
 ```
-data/raw/
-├── 0001193125-23-123456.xml
-├── 0001193125-23-234567.xml
-└── 0001193125-23-345678.xml
+Period: Q2 2025 (01-JUN-2025 to 31-AUG-2025)
+Files: 9 TSV/JSON/HTM files
 ```
 
 ## How to Ingest
 
-After adding XML files here, run the ingestion command:
+After adding data files here, run the ingestion command:
 
 ```bash
 # Using Docker
@@ -29,16 +37,31 @@ docker-compose exec api python -m src.ingestion.ingest --folder /app/data/raw
 python -m src.ingestion.ingest --folder ./data/raw
 ```
 
-## Where to Find 13F Forms
+## Where to Get Data
 
-1. Go to [SEC EDGAR](https://www.sec.gov/edgar/searchedgar/companysearch.html)
-2. Search for an institutional investor (e.g., "Berkshire Hathaway")
-3. Filter for "13F-HR" filings
-4. Download the XML version of the filing
-5. Place in this directory
+SEC provides quarterly bulk data downloads:
+
+1. Go to [SEC Financial Statement Data Sets](https://www.sec.gov/dera/data/form-13f-data-sets)
+2. Download the quarterly ZIP file (e.g., `01JUN2025-31AUG2025_form13f.zip`)
+3. Extract and place TSV files in this directory
+
+## Data Schema
+
+The metadata file (`FORM13F_metadata.json`) contains complete schema definitions for all TSV files.
+
+### Key Fields in INFOTABLE.tsv
+
+- `ACCESSION_NUMBER` - Links to SUBMISSION.tsv
+- `CUSIP` - Security identifier
+- `NAMEOFISSUER` - Company name
+- `VALUE` - Market value in dollars (not thousands!)
+- `SSHPRNAMT` - Number of shares or principal amount
+- `INVESTMENTDISCRETION` - SOLE, SHARED, or DEFINED
+- `VOTING_AUTH_SOLE/SHARED/NONE` - Voting authority breakdown
 
 ## Notes
 
-- XML files in this folder are tracked by git (committed to the repository)
+- TSV files in this folder are tracked by git (committed to the repository)
 - Processed data goes to `data/processed/` (not tracked by git)
 - Cache files go to `data/cache/` (not tracked by git)
+- Data format changed from XML to TSV bulk format (easier to parse!)
