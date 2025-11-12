@@ -19,6 +19,11 @@ from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 import os
 
+# Fix Unicode encoding for Windows
+if sys.platform == 'win32':
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
 
 def main():
     """Setup database schema"""
