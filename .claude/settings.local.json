@@ -10,7 +10,11 @@
       "Bash(cat:*)",
       "Bash(python -m src.ingestion.ingest:*)",
       "Bash(pip install pydantic)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(uv pip install:*)",
+      "Bash(uv venv:*)",
+      "Bash(.venv/Scripts/python -m pytest:*)",
+      "Bash(.venv/Scripts/python:*)"
     ],
     "deny": [],
     "ask": []
