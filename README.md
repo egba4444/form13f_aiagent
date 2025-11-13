@@ -46,23 +46,25 @@ Claude Generates Natural Language Answer
 | Language | Python 3.11+ |
 | LLM Provider | LiteLLM (100+ providers) |
 | LLM | Claude 3.5 Sonnet (default) |
-| Database | PostgreSQL 16+ |
+| Database | PostgreSQL 16+ (Supabase) |
 | API Framework | FastAPI |
 | UI | Streamlit |
 | ORM | SQLAlchemy 2.0 |
 | HTTP Client | httpx |
 | Testing | pytest |
 | Package Manager | uv (10x faster than pip) |
+| Deployment | Railway.app |
+| Containerization | Docker |
 
 ## 📋 Implementation Phases
 
 | Phase | Description | Duration | Status |
 |-------|-------------|----------|--------|
-| **Phase 1** | Data Ingestion & Parsing | 2-3 days | 🎯 Next |
-| **Phase 2** | PostgreSQL Schema & Loading | 2-3 days | Planned |
-| **Phase 3** | SQL Query Tool | 3-4 days | Planned |
-| **Phase 4** | Agent Orchestration | 2-3 days | Planned |
-| **Phase 5** | FastAPI Backend | 2-3 days | Planned |
+| **Phase 1** | Data Ingestion & Parsing | 2-3 days | ✅ Complete |
+| **Phase 2** | PostgreSQL Schema & Loading | 2-3 days | ✅ Complete |
+| **Phase 3** | SQL Query Tool | 3-4 days | ✅ Complete |
+| **Phase 4** | Agent Orchestration | 2-3 days | ✅ Complete |
+| **Phase 5** | FastAPI Backend | 2-3 days | 🎯 Next |
 | **Phase 6** | Streamlit UI | 2-3 days | Planned |
 | **Phase 7** | Optional: RAG for Commentary | 3-4 days | Future |
 
@@ -162,6 +164,32 @@ python -m src.ingestion.ingest --folder data/raw
 ```bash
 uvicorn src.api.main:app --reload
 ```
+
+## 🚂 Deployment (Railway)
+
+Deploy to Railway.app in 3 steps:
+
+1. **Push to GitHub**
+```bash
+git push
+```
+
+2. **Connect to Railway**
+- Go to https://railway.app/new
+- Select "Deploy from GitHub repo"
+- Choose `egba4444/form13f_aiagent`
+
+3. **Add Environment Variables**
+```bash
+DATABASE_URL=postgresql://postgres:...@db...supabase.co:5432/postgres
+ANTHROPIC_API_KEY=sk-ant-your-key-here
+LLM_PROVIDER=anthropic
+LLM_MODEL=claude-3-5-sonnet-20241022
+```
+
+**Done!** Your API will be live at `https://your-app.up.railway.app`
+
+See [docs/RAILWAY_DEPLOYMENT.md](docs/RAILWAY_DEPLOYMENT.md) for detailed guide.
 
 ## 📁 Project Structure
 

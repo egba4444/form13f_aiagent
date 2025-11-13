@@ -1,0 +1,69 @@
+# Railway Ignore File
+# Files and directories to exclude from Railway deployment
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Documentation (not needed in production)
+docs/
+*.md
+!README.md
+
+# Tests (not needed in production)
+tests/
+pytest.ini
+
+# Local development
+.env.local
+.env.example
+docker-compose.yml
+docker-compose.prod.yml
+
+# Data files (too large for deployment)
+data/raw/
+data/processed/
+data/cache/
+*.tsv
+*.csv
+*.parquet
+
+# Scripts (not needed in runtime)
+scripts/
+examples/
+
+# CI/CD
+.github/
+
+# Claude Code
+.claude/
