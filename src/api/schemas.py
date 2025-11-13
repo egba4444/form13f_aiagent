@@ -54,6 +54,11 @@ class HealthResponse(BaseModel):
     version: str = Field(..., description="API version", examples=["0.1.0"])
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="Current server time")
 
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+
 
 # Error Response
 class ErrorResponse(BaseModel):
@@ -62,6 +67,11 @@ class ErrorResponse(BaseModel):
     detail: str = Field(..., description="Error message")
     error_code: Optional[str] = Field(None, description="Error code for client handling")
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
 
 
 # Manager Models

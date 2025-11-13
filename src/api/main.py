@@ -139,7 +139,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content=ErrorResponse(
             detail=f"Validation error: {errors[0]['msg']}",
             error_code="VALIDATION_ERROR"
-        ).dict()
+        ).model_dump(mode='json')
     )
 
 
@@ -153,7 +153,7 @@ async def value_error_handler(request: Request, exc: ValueError):
         content=ErrorResponse(
             detail=str(exc),
             error_code="VALUE_ERROR"
-        ).dict()
+        ).model_dump(mode='json')
     )
 
 
@@ -167,7 +167,7 @@ async def general_exception_handler(request: Request, exc: Exception):
         content=ErrorResponse(
             detail="Internal server error. Please try again later.",
             error_code="INTERNAL_ERROR"
-        ).dict()
+        ).model_dump(mode='json')
     )
 
 

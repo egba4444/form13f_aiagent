@@ -113,7 +113,9 @@ class Agent:
                     "success": False,
                     "error": f"LLM Error: {str(e)}",
                     "answer": f"I encountered an error while processing your question: {str(e)}",
-                    "execution_time_ms": int((time.time() - start_time) * 1000)
+                    "execution_time_ms": int((time.time() - start_time) * 1000),
+                    "tool_calls": len(tool_calls_made),
+                    "turns": turn + 1
                 }
 
             assistant_message = response.choices[0].message

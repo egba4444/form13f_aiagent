@@ -18,7 +18,16 @@
       "Bash(.venv/Scripts/alembic init alembic)",
       "Bash(docker compose:*)",
       "Bash(.venv/Scripts/alembic revision:*)",
-      "Bash(where:*)"
+      "Bash(where:*)",
+      "Bash(uv pip list:*)",
+      "Bash(python:*)",
+      "Bash(uv sync:*)",
+      "Bash(uv run python:*)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(.venv/Scripts/python.exe:*)",
+      "Bash(.venvScriptspython.exe scriptstest_api_setup.py)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []
