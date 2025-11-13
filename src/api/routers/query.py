@@ -1,0 +1,79 @@
+"""
+Query Router
+
+Natural language query endpoint for the AI agent.
+"""
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
+import logging
+
+from ..schemas import QueryRequest, QueryResponse
+from ..dependencies import get_agent
+from ...agent import Agent
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter()
+
+
+@router.post("/query", response_model=QueryResponse)
+async def query_agent(
+    request: QueryRequest,
+    agent: Agent = Depends(get_agent)
+):
+    """
+    Ask a natural language question about Form 13F data.
+
+    The agent will:
+    1. Understand your question
+    2. Generate safe SQL query
+    3. Execute on database
+    4. Format natural language answer
+
+    **Example questions:**
+    - "How many Apple shares did Berkshire Hathaway hold in Q4 2024?"
+    - "What are the top 5 managers by portfolio value?"
+    - "Who holds the most Tesla stock?"
+
+    **Parameters:**
+    - `query`: Your natural language question (3-500 characters)
+    - `include_sql`: Include generated SQL in response (default: false)
+    - `include_raw_data`: Include raw query results (default: false)
+
+    **Returns:**
+    - Natural language answer
+    - Optional: Generated SQL query
+    - Optional: Raw database results
+    - Execution time and metadata
+    """
+    logger.info(f"Query received: {request.query[:100]}...")
+
+    try:
+        # Execute query through agent
+        result = agent.query(
+            question=request.query,
+            include_sql=request.include_sql,
+            include_raw_data=request.include_raw_data
+        )
+
+        logger.info(
+            f"Query completed: success={result.get('success')}, "
+            f"time={result.get('execution_time_ms')}ms"
+        )
+
+        # Return response
+        return QueryResponse(**result)
+
+    except Exception as e:
+        logger.error(f"Query error: {e}", exc_info=True)
+
+        # Return error response
+        return QueryResponse(
+            success=False,
+            answer=f"I encountered an error processing your question: {str(e)}",
+            execution_time_ms=0,
+            tool_calls=0,
+            turns=0,
+            error=str(e)
+        )
