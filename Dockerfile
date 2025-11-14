@@ -58,5 +58,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
 # Expose FastAPI port
 EXPOSE 8000
 
-# Default command (can be overridden in docker-compose.yml)
-CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Default command - Railway will override with railway.toml startCommand
+CMD ["sh", "-c", "uvicorn src.api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
