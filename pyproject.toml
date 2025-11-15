@@ -20,7 +20,7 @@ dependencies = [
     # Database
     "sqlalchemy>=2.0.0",
     "psycopg2-binary>=2.9.9",
-    # Note: asyncpg removed - using psycopg2-binary instead (better Python 3.14 support)
+    # Note: asyncpg removed - using psycopg2-binary for better compatibility
 
     # HTTP & Async
     "httpx>=0.26.0",
