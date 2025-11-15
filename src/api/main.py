@@ -29,6 +29,9 @@ logger = logging.getLogger(__name__)
 # Version
 VERSION = "0.1.0"
 
+# Global database engine for health checks (reused to avoid connection exhaustion)
+_health_check_engine = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator:
@@ -199,12 +202,21 @@ async def health_check():
 
     Returns service status and connectivity.
     """
-    # Check database
+    global _health_check_engine
+
+    # Check database - reuse cached engine to avoid connection exhaustion
     database_status = "disconnected"
     try:
-        database_url = get_database_url()
-        engine = create_engine(database_url)
-        with engine.connect() as conn:
+        if _health_check_engine is None:
+            database_url = get_database_url()
+            _health_check_engine = create_engine(
+                database_url,
+                pool_size=1,
+                max_overflow=0,
+                pool_pre_ping=True
+            )
+
+        with _health_check_engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         database_status = "connected"
     except Exception as e:
