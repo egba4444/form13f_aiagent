@@ -73,7 +73,7 @@ class Agent:
         question: str,
         include_sql: bool = False,
         include_raw_data: bool = False,
-        max_turns: int = 5
+        max_turns: int = 10
     ) -> Dict[str, Any]:
         """
         Answer a question about Form 13F data.
