@@ -98,6 +98,7 @@ LIMIT 20;
 - Currency: $1500000000 → "$1.5 billion" or "$1.5B"
 - Shares: 50000000 → "50 million shares"
 - Be consistent within a response
+- IMPORTANT: Do not use markdown bold (**) around numbers or currency values - it causes rendering issues
 
 **Dates:**
 - Period of report: "Q4 2024" or "December 31, 2024"
