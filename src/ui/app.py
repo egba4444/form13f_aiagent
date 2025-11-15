@@ -269,11 +269,12 @@ def main():
 
                 st.session_state.messages.append(message_data)
             else:
-                error_msg = response.get("error", "Unknown error occurred")
-                st.error(f"Error: {error_msg}")
+                # Show the answer field which contains the custom error message
+                error_msg = response.get("answer", response.get("error", "Unknown error occurred"))
+                st.error(error_msg)
                 st.session_state.messages.append({
                     "role": "assistant",
-                    "content": f"⚠️ Error: {error_msg}"
+                    "content": f"⚠️ {error_msg}"
                 })
 
         st.rerun()
@@ -321,11 +322,12 @@ def main():
 
                 st.session_state.messages.append(message_data)
             else:
-                error_msg = response.get("error", "Unknown error occurred")
-                st.error(f"Error: {error_msg}")
+                # Show the answer field which contains the custom error message
+                error_msg = response.get("answer", response.get("error", "Unknown error occurred"))
+                st.error(error_msg)
                 st.session_state.messages.append({
                     "role": "assistant",
-                    "content": f"⚠️ Error: {error_msg}"
+                    "content": f"⚠️ {error_msg}"
                 })
 
 
