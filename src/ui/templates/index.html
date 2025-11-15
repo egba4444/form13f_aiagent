@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form 13F AI Agent</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #1a202c;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #718096;
+            font-size: 14px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            color: #1a202c;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-user {
+            text-align: right;
+        }
+
+        .message-bubble {
+            display: inline-block;
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+
+        .message-user .message-bubble {
+            background: #667eea;
+            color: white;
+        }
+
+        .message-assistant .message-bubble {
+            background: #f7fafc;
+            color: #1a202c;
+            border: 1px solid #e2e8f0;
+        }
+
+        .sql-box {
+            background: #2d3748;
+            color: #48bb78;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 8px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+
+        .table-container {
+            margin-top: 12px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th, td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #f7fafc;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 12px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 24px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-button {
+            padding: 12px 32px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .send-button:hover {
+            background: #5568d3;
+        }
+
+        .send-button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #e2e8f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            color: #f56565;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .example-queries {
+            margin-top: 12px;
+        }
+
+        .example-query {
+            display: inline-block;
+            background: #edf2f7;
+            color: #4a5568;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            margin: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .example-query:hover {
+            background: #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Form 13F AI Agent</h1>
+            <p>Ask questions about institutional investor holdings in natural language</p>
+        </div>
+
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-label">Managers</div>
+                <div class="stat-value" id="managersCount">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Issuers</div>
+                <div class="stat-value" id="issuersCount">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Filings</div>
+                <div class="stat-value" id="filingsCount">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Holdings</div>
+                <div class="stat-value" id="holdingsCount">-</div>
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages">
+                <div class="message message-assistant">
+                    <div class="message-bubble">
+                        Hello! I'm your Form 13F AI assistant. Ask me questions about institutional holdings data.
+                        <div class="example-queries">
+                            <div class="example-query" onclick="setQuery('How many managers are in the database?')">How many managers are in the database?</div>
+                            <div class="example-query" onclick="setQuery('Show me the top 5 managers by total portfolio value')">Top 5 managers by value</div>
+                            <div class="example-query" onclick="setQuery('What were the most commonly held stocks?')">Most held stocks</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="chat-input-container">
+                <div class="chat-input-wrapper">
+                    <input
+                        type="text"
+                        class="chat-input"
+                        id="queryInput"
+                        placeholder="Ask a question about Form 13F holdings..."
+                        onkeypress="handleKeyPress(event)"
+                    >
+                    <button class="send-button" id="sendButton" onclick="sendQuery()">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let isLoading = false;
+
+        // Load stats on page load
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/stats`);
+                const data = await response.json();
+
+                document.getElementById('managersCount').textContent = formatNumber(data.managers_count);
+                document.getElementById('issuersCount').textContent = formatNumber(data.issuers_count);
+                document.getElementById('filingsCount').textContent = formatNumber(data.filings_count);
+                document.getElementById('holdingsCount').textContent = formatNumber(data.holdings_count);
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        function formatNumber(num) {
+            return new Intl.NumberFormat().format(num);
+        }
+
+        function setQuery(text) {
+            document.getElementById('queryInput').value = text;
+            document.getElementById('queryInput').focus();
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !isLoading) {
+                sendQuery();
+            }
+        }
+
+        async function sendQuery() {
+            const input = document.getElementById('queryInput');
+            const query = input.value.trim();
+
+            if (!query || isLoading) return;
+
+            // Add user message
+            addMessage(query, 'user');
+            input.value = '';
+
+            // Show loading
+            isLoading = true;
+            updateButtonState();
+            const loadingMsg = addMessage('<span class="loading"></span> Thinking...', 'assistant');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/query`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query })
+                });
+
+                const data = await response.json();
+
+                // Remove loading message
+                loadingMsg.remove();
+
+                if (data.success) {
+                    // Add answer
+                    let content = data.answer;
+
+                    // Add SQL if available
+                    if (data.sql_query) {
+                        content += `<div class="sql-box">${escapeHtml(data.sql_query)}</div>`;
+                    }
+
+                    // Add table if raw data available
+                    if (data.raw_data && data.raw_data.length > 0) {
+                        content += formatTable(data.raw_data);
+                    }
+
+                    addMessage(content, 'assistant');
+                } else {
+                    addMessage(`<div class="error">Error: ${escapeHtml(data.error || 'Unknown error')}</div>`, 'assistant');
+                }
+            } catch (error) {
+                loadingMsg.remove();
+                addMessage(`<div class="error">Failed to send query: ${escapeHtml(error.message)}</div>`, 'assistant');
+            } finally {
+                isLoading = false;
+                updateButtonState();
+            }
+        }
+
+        function addMessage(content, type) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message message-${type}`;
+            messageDiv.innerHTML = `<div class="message-bubble">${content}</div>`;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            return messageDiv;
+        }
+
+        function formatTable(data) {
+            if (!data || data.length === 0) return '';
+
+            const headers = Object.keys(data[0]);
+            let html = '<div class="table-container"><table>';
+
+            // Headers
+            html += '<tr>';
+            headers.forEach(header => {
+                html += `<th>${escapeHtml(header)}</th>`;
+            });
+            html += '</tr>';
+
+            // Rows (limit to 10)
+            const rows = data.slice(0, 10);
+            rows.forEach(row => {
+                html += '<tr>';
+                headers.forEach(header => {
+                    const value = row[header];
+                    html += `<td>${escapeHtml(String(value ?? ''))}</td>`;
+                });
+                html += '</tr>';
+            });
+
+            html += '</table></div>';
+
+            if (data.length > 10) {
+                html += `<p style="font-size: 12px; color: #718096; margin-top: 8px;">Showing 10 of ${data.length} rows</p>`;
+            }
+
+            return html;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function updateButtonState() {
+            const button = document.getElementById('sendButton');
+            const input = document.getElementById('queryInput');
+            button.disabled = isLoading;
+            input.disabled = isLoading;
+            button.textContent = isLoading ? 'Sending...' : 'Send';
+        }
+
+        // Load stats when page loads
+        loadStats();
+    </script>
+</body>
+</html>

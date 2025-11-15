@@ -8,11 +8,22 @@ natural language questions about Form 13F institutional holdings.
 from typing import List, Dict, Any, Optional
 import json
 import time
+from datetime import date, datetime
+from decimal import Decimal
 
 from .llm_config import LLMClient, get_llm_client
 from .prompts import get_system_prompt
 from ..tools.sql_tool import SQLQueryTool
 from ..tools.schema_loader import SchemaLoader
+
+
+def json_serial(obj):
+    """JSON serializer for objects not serializable by default json code"""
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    if isinstance(obj, Decimal):
+        return float(obj)
+    raise TypeError(f"Type {type(obj)} not serializable")
 
 
 class Agent:
@@ -178,7 +189,7 @@ class Agent:
                             "role": "tool",
                             "tool_call_id": tool_call.id,
                             "name": function_name,
-                            "content": json.dumps(result)
+                            "content": json.dumps(result, default=json_serial)
                         })
 
                 # Continue conversation with tool results

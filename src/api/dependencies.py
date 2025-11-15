@@ -51,8 +51,11 @@ def get_agent() -> Agent:
         def query(agent: Agent = Depends(get_agent)):
             result = agent.query(question)
     """
+    from ..agent.llm_config import LLMClient
     database_url = get_database_url()
-    return Agent(database_url, verbose=False)
+    # Create fresh LLM client to avoid singleton caching issues
+    llm_client = LLMClient()
+    return Agent(database_url, llm_client=llm_client, verbose=False)
 
 
 def get_sql_tool() -> SQLQueryTool:

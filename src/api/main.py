@@ -6,12 +6,14 @@ Main entry point for the REST API.
 
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import time
 import logging
 from typing import AsyncGenerator
+from pathlib import Path
 
 from .dependencies import get_database_url
 from .schemas import ErrorResponse, HealthResponse, DatabaseStatsResponse
@@ -171,17 +173,22 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 
-# Root endpoint
+# Root endpoint - serve web UI
 @app.get("/", tags=["Root"])
 async def root():
-    """API root endpoint"""
-    return {
-        "name": "Form 13F AI Agent API",
-        "version": VERSION,
-        "docs": "/docs",
-        "health": "/health",
-        "query": "/api/v1/query"
-    }
+    """Serve the web UI"""
+    ui_path = Path(__file__).parent.parent / "ui" / "templates" / "index.html"
+    if ui_path.exists():
+        return FileResponse(ui_path)
+    else:
+        # Fallback to API info if UI not found
+        return {
+            "name": "Form 13F AI Agent API",
+            "version": VERSION,
+            "docs": "/docs",
+            "health": "/health",
+            "query": "/api/v1/query"
+        }
 
 
 # Health check endpoint

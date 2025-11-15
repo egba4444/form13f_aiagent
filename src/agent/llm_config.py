@@ -135,8 +135,9 @@ class LLMClient:
 
         # For Anthropic, use provider prefix
         if provider == "anthropic":
-            # LiteLLM expects format like "claude-3-5-sonnet-20241022"
-            # It auto-detects Anthropic from model name
+            # LiteLLM requires "anthropic/" prefix for Claude models
+            if not model.startswith("anthropic/"):
+                return f"anthropic/{model}"
             return model
 
         # For other providers, use provider/model format if needed
