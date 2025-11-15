@@ -224,7 +224,8 @@ class Agent:
             "error": f"Maximum conversation turns ({max_turns}) reached",
             "answer": "I apologize, but I wasn't able to complete your request within the allowed number of steps.",
             "execution_time_ms": int((time.time() - start_time) * 1000),
-            "tool_calls": len(tool_calls_made)
+            "tool_calls": len(tool_calls_made),
+            "turns": max_turns
         }
 
     def reset_conversation(self):
