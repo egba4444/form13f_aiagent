@@ -178,11 +178,11 @@ def main():
         # Example queries
         st.subheader("Example Queries")
         examples = [
-            "How many managers are there?",
-            "How many filings are there?",
-            "How many holdings are there?",
-            "Show me 5 managers",
-            "Show me 5 filings"
+            "Show me the 5 largest holdings by value",
+            "Which managers filed in the last quarter?",
+            "List all Apple holdings",
+            "Show me Berkshire Hathaway's recent filings",
+            "What are the top 10 holdings by share count?"
         ]
 
         for example in examples:
