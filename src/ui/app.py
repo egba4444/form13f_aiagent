@@ -201,7 +201,11 @@ def main():
     # Display chat messages
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+            # Clean up any problematic markdown that causes rendering issues
+            content = message["content"]
+            # Remove any Unicode asterisks that might cause issues
+            content = content.replace('∗', '*')
+            st.markdown(content, unsafe_allow_html=False)
 
             # Display SQL if available
             if "sql" in message:
@@ -241,7 +245,9 @@ def main():
             if response.get("success"):
                 # Format response
                 answer = response.get("answer", "I found the results for your query.")
-                st.markdown(answer)
+                # Clean up any problematic markdown that causes rendering issues
+                answer = answer.replace('∗', '*')
+                st.markdown(answer, unsafe_allow_html=False)
 
                 message_data = {"role": "assistant", "content": answer}
 
@@ -294,7 +300,9 @@ def main():
             if response.get("success"):
                 # Format response
                 answer = response.get("answer", "I found the results for your query.")
-                st.markdown(answer)
+                # Clean up any problematic markdown that causes rendering issues
+                answer = answer.replace('∗', '*')
+                st.markdown(answer, unsafe_allow_html=False)
 
                 message_data = {"role": "assistant", "content": answer}
 
