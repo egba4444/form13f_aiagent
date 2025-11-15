@@ -11,8 +11,8 @@ from typing import Optional
 import pandas as pd
 
 # Configuration
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
-TIMEOUT = 60.0  # seconds
+API_BASE_URL = os.getenv("API_BASE_URL", "https://form13f-aiagent-production.up.railway.app")
+TIMEOUT = 120.0  # 2 minutes timeout for agent queries
 
 # Page configuration
 st.set_page_config(
