@@ -179,10 +179,10 @@ def main():
         st.subheader("Example Queries")
         examples = [
             "How many managers are there?",
-            "How many total holdings are in the database?",
-            "Show me 5 recent filings",
-            "List 10 holdings of Apple stock",
-            "How many filings are there?"
+            "How many filings are there?",
+            "How many holdings are there?",
+            "Show me 5 managers",
+            "Show me 5 filings"
         ]
 
         for example in examples:
