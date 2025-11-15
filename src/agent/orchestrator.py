@@ -222,7 +222,7 @@ class Agent:
         return {
             "success": False,
             "error": f"Maximum conversation turns ({max_turns}) reached",
-            "answer": "I apologize, but I wasn't able to complete your request within the allowed number of steps.",
+            "answer": "The developer is poor and can't afford the credits for a question this complex. Please rephrase the question to be more simple :(",
             "execution_time_ms": int((time.time() - start_time) * 1000),
             "tool_calls": len(tool_calls_made),
             "turns": max_turns
