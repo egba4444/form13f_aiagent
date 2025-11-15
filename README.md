@@ -136,7 +136,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 # Create virtual environment and install dependencies
 uv venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
-uv pip install -e ".[dev]"
+uv sync --all-extras
 ```
 
 3. **Start PostgreSQL**
