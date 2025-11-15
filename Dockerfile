@@ -17,10 +17,11 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # Copy dependency files
 COPY pyproject.toml ./
+COPY uv.lock ./
 COPY src/ ./src/
 
-# Install Python dependencies using uv (much faster than pip)
-RUN uv pip install --system --no-cache .
+# Install Python dependencies using uv sync (much faster than pip)
+RUN uv sync --frozen --no-dev
 
 # Stage 2: Runtime
 FROM python:3.11-slim
@@ -33,9 +34,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy Python packages from builder
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+# Copy uv-managed virtual environment from builder
+COPY --from=builder /app/.venv /app/.venv
 
 # Copy application code
 COPY src/ ./src/
@@ -54,5 +54,8 @@ USER appuser
 # Expose FastAPI port
 EXPOSE 8000
 
+# Activate virtual environment and run uvicorn
+ENV PATH="/app/.venv/bin:$PATH"
+
 # Default command - Railway will override with railway.toml startCommand
-CMD ["sh", "-c", "uvicorn src.api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
