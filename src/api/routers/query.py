@@ -7,10 +7,13 @@ Natural language query endpoint for the AI agent.
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 import logging
+import time
 
 from ..schemas import QueryRequest, QueryResponse
 from ..dependencies import get_agent
 from ...agent import Agent
+from ..analytics import analytics
+from ..cache import query_cache
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +51,24 @@ async def query_agent(
     - Execution time and metadata
     """
     logger.info(f"Query received: {request.query[:100]}...")
+    start_time = time.time()
 
     try:
+        # Check cache first
+        cached_response = query_cache.get(request.query)
+        if cached_response:
+            logger.info(f"Cache hit for query: {request.query[:100]}...")
+            response_time_ms = int((time.time() - start_time) * 1000)
+
+            # Record analytics
+            analytics.record_query(
+                query=request.query,
+                response_time_ms=response_time_ms,
+                success=True
+            )
+
+            return QueryResponse(**cached_response)
+
         # Execute query through agent
         result = agent.query(
             question=request.query,
@@ -60,6 +79,18 @@ async def query_agent(
         logger.info(
             f"Query completed: success={result.get('success')}, "
             f"time={result.get('execution_time_ms')}ms"
+        )
+
+        # Cache successful responses
+        if result.get('success'):
+            query_cache.set(request.query, result)
+
+        # Record analytics
+        analytics.record_query(
+            query=request.query,
+            response_time_ms=result.get('execution_time_ms', 0),
+            success=result.get('success', False),
+            error=result.get('error')
         )
 
         # Return response

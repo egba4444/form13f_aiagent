@@ -373,6 +373,42 @@ async def debug_database():
     return result
 
 
+# Analytics and cache endpoints
+from .analytics import analytics
+from .cache import query_cache
+
+
+@app.get("/api/v1/analytics", tags=["Analytics"])
+async def get_analytics():
+    """
+    Get query analytics.
+
+    Returns statistics about API usage, query performance, and errors.
+    """
+    return analytics.get_stats()
+
+
+@app.get("/api/v1/cache/stats", tags=["Cache"])
+async def get_cache_stats():
+    """
+    Get cache statistics.
+
+    Returns cache hit rate, size, and configuration.
+    """
+    return query_cache.get_stats()
+
+
+@app.post("/api/v1/cache/clear", tags=["Cache"])
+async def clear_cache():
+    """
+    Clear the query cache.
+
+    Removes all cached queries and resets statistics.
+    """
+    query_cache.clear()
+    return {"status": "success", "message": "Cache cleared"}
+
+
 # Import routers
 from .routers import query
 app.include_router(query.router, prefix="/api/v1", tags=["Query"])
