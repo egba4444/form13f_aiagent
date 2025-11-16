@@ -120,6 +120,37 @@ class Agent:
                     tool_choice="auto"
                 )
             except Exception as e:
+                # Check for rate limit or token limit errors
+                error_str = str(e).lower()
+                is_rate_limit = any(phrase in error_str for phrase in [
+                    "rate_limit_error",
+                    "rate limit",
+                    "too many requests",
+                    "quota exceeded"
+                ])
+                is_token_limit = any(phrase in error_str for phrase in [
+                    "maximum context length",
+                    "token limit",
+                    "context_length_exceeded",
+                    "too many tokens"
+                ])
+
+                # Use custom error message for rate/token limits
+                if is_rate_limit or is_token_limit:
+                    custom_message = (
+                        "The developer doesn't have enough money to pay for "
+                        "a question this complex. Please rephrase or ask something simpler."
+                    )
+                    return {
+                        "success": False,
+                        "error": custom_message,
+                        "answer": custom_message,
+                        "execution_time_ms": int((time.time() - start_time) * 1000),
+                        "tool_calls": len(tool_calls_made),
+                        "turns": turn + 1
+                    }
+
+                # Return generic error for other exceptions
                 return {
                     "success": False,
                     "error": f"LLM Error: {str(e)}",
