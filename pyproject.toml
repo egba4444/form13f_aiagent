@@ -45,13 +45,15 @@ dependencies = [
     "typer>=0.9.0",
     "rich>=13.7.0",
     "tqdm>=4.66.0",
+
+    # UI
+    "streamlit>=1.30.0",
+    "plotly>=5.18.0",
 ]
 
 [project.optional-dependencies]
 ui = [
-    # UI components (requires CMake on Windows for pyarrow)
-    "streamlit>=1.30.0",
-    "plotly>=5.18.0",
+    # UI components - now in main dependencies for Railway deployment
 ]
 dev = [
     "pytest>=7.4.0",
