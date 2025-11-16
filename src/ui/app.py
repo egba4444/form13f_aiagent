@@ -120,6 +120,15 @@ def format_number(num: int) -> str:
 
 
 def main():
+    # Initialize chat history FIRST (before any UI interactions)
+    if "messages" not in st.session_state:
+        st.session_state.messages = [
+            {
+                "role": "assistant",
+                "content": "Hello! I'm your Form 13F AI assistant. Ask me questions about institutional holdings data. Try one of the example queries in the sidebar!"
+            }
+        ]
+
     # Header
     st.markdown('<div class="main-header">📊 Form 13F AI Agent</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Ask questions about institutional investor holdings in natural language</div>', unsafe_allow_html=True)
@@ -188,15 +197,6 @@ def main():
         for example in examples:
             if st.button(example, key=f"example_{hash(example)}", use_container_width=True):
                 st.session_state.example_query = example
-
-    # Initialize chat history
-    if "messages" not in st.session_state:
-        st.session_state.messages = [
-            {
-                "role": "assistant",
-                "content": "Hello! I'm your Form 13F AI assistant. Ask me questions about institutional holdings data. Try one of the example queries in the sidebar!"
-            }
-        ]
 
     # Display chat messages
     for message in st.session_state.messages:
