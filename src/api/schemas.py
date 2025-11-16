@@ -160,3 +160,101 @@ class DatabaseStatsResponse(BaseModel):
     holdings_count: int
     latest_quarter: Optional[str] = None
     total_value: Optional[int] = Field(None, description="Total value across all holdings")
+
+
+# Analytics Models
+class PortfolioHolding(BaseModel):
+    """Individual holding in a portfolio"""
+    cusip: str
+    title_of_class: str
+    value: int
+    shares_or_principal: int
+    percent_of_portfolio: float = Field(..., description="Percentage of total portfolio value")
+
+
+class PortfolioCompositionResponse(BaseModel):
+    """Portfolio composition analysis for a manager"""
+    cik: str
+    manager_name: str
+    period: str
+    total_value: int
+    number_of_holdings: int
+    top_holdings: List[PortfolioHolding] = Field(..., description="Top holdings by value")
+    concentration: Dict[str, float] = Field(
+        ...,
+        description="Concentration metrics (e.g., top5_percent, top10_percent)"
+    )
+
+
+class PositionChange(BaseModel):
+    """Position change over time"""
+    cusip: str
+    title_of_class: str
+    previous_shares: Optional[int]
+    current_shares: int
+    shares_change: Optional[int]
+    shares_change_percent: Optional[float]
+    previous_value: Optional[int]
+    current_value: int
+    value_change: Optional[int]
+    value_change_percent: Optional[float]
+
+
+class PositionHistoryResponse(BaseModel):
+    """Historical position changes for a manager"""
+    cik: str
+    manager_name: str
+    cusip: Optional[str] = None
+    security_name: Optional[str] = None
+    periods: List[str] = Field(..., description="Reporting periods")
+    changes: List[PositionChange] = Field(..., description="Position changes over time")
+
+
+class TopMover(BaseModel):
+    """Top position change"""
+    cik: str
+    manager_name: str
+    cusip: str
+    title_of_class: str
+    previous_value: int
+    current_value: int
+    value_change: int
+    value_change_percent: float
+    previous_shares: int
+    current_shares: int
+    shares_change: int
+    shares_change_percent: float
+
+
+class TopMoversResponse(BaseModel):
+    """Top position changes across all managers"""
+    period_from: str
+    period_to: str
+    biggest_increases: List[TopMover]
+    biggest_decreases: List[TopMover]
+    new_positions: List[Dict[str, Any]] = Field(..., description="Newly established positions")
+    closed_positions: List[Dict[str, Any]] = Field(..., description="Completely closed positions")
+
+
+class SecurityOwnership(BaseModel):
+    """Ownership details for a security"""
+    cik: str
+    manager_name: str
+    shares: int
+    value: int
+    percent_of_total: float = Field(..., description="Percentage of total institutional ownership")
+
+
+class SecurityAnalysisResponse(BaseModel):
+    """Ownership analysis for a specific security"""
+    cusip: str
+    title_of_class: str
+    period: str
+    total_institutional_shares: int
+    total_institutional_value: int
+    number_of_holders: int
+    top_holders: List[SecurityOwnership]
+    concentration: Dict[str, float] = Field(
+        ...,
+        description="Ownership concentration metrics"
+    )

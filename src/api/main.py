@@ -410,7 +410,7 @@ async def clear_cache():
 
 
 # Import routers
-from .routers import query, managers, filings, holdings
+from .routers import query, managers, filings, holdings, analytics_endpoints
 
 # Natural language query router
 app.include_router(query.router, prefix="/api/v1", tags=["Query"])
@@ -419,6 +419,9 @@ app.include_router(query.router, prefix="/api/v1", tags=["Query"])
 app.include_router(managers.router, prefix="/api/v1", tags=["Managers"])
 app.include_router(filings.router, prefix="/api/v1", tags=["Filings"])
 app.include_router(holdings.router, prefix="/api/v1", tags=["Holdings"])
+
+# Analytics routers
+app.include_router(analytics_endpoints.router, prefix="/api/v1", tags=["Analytics"])
 
 
 if __name__ == "__main__":
