@@ -33,8 +33,8 @@ Claude Generates Natural Language Answer
 - **PostgreSQL Database**: Structured storage of holdings and metadata
 - **SQL Query Tool**: Claude generates safe, validated SQL queries
 - **Agent**: Natural language → SQL → Answer pipeline
-- **API**: FastAPI backend with REST endpoints
-- **UI**: Streamlit chat interface
+- **API**: FastAPI backend with REST endpoints and analytics
+- **UI**: Streamlit multi-tab interface with interactive visualizations
 
 **Future Enhancement (Phase 7):**
 - Add RAG/vector store for unstructured commentary and explanatory notes
@@ -49,11 +49,12 @@ Claude Generates Natural Language Answer
 | Database | PostgreSQL 16+ (Supabase) |
 | API Framework | FastAPI |
 | UI | Streamlit |
+| Visualizations | Plotly |
 | ORM | SQLAlchemy 2.0 |
 | HTTP Client | httpx |
 | Testing | pytest |
 | Package Manager | uv (10x faster than pip) |
-| Deployment | Railway.app |
+| Deployment | Railway.app (API) + Streamlit Cloud (UI) |
 | Containerization | Docker |
 
 ## 📋 Implementation Phases
@@ -64,8 +65,8 @@ Claude Generates Natural Language Answer
 | **Phase 2** | PostgreSQL Schema & Loading | 2-3 days | ✅ Complete |
 | **Phase 3** | SQL Query Tool | 3-4 days | ✅ Complete |
 | **Phase 4** | Agent Orchestration | 2-3 days | ✅ Complete |
-| **Phase 5** | FastAPI Backend | 2-3 days | 🎯 Next |
-| **Phase 6** | Streamlit UI | 2-3 days | Planned |
+| **Phase 5** | FastAPI Backend + Analytics | 2-3 days | ✅ Complete |
+| **Phase 6** | Streamlit UI + Visualizations | 2-3 days | ✅ Complete |
 | **Phase 7** | Optional: RAG for Commentary | 3-4 days | Future |
 
 **Timeline**: 2-3 weeks to working prototype with SQL queries
@@ -191,6 +192,32 @@ LLM_MODEL=claude-3-5-sonnet-20241022
 
 See [docs/RAILWAY_DEPLOYMENT.md](docs/RAILWAY_DEPLOYMENT.md) for detailed guide.
 
+## ☁️ Streamlit Cloud Deployment
+
+Deploy the UI to Streamlit Cloud for free:
+
+1. **Push to GitHub** (if not already done)
+```bash
+git push
+```
+
+2. **Deploy to Streamlit Cloud**
+- Go to https://share.streamlit.io
+- Click "New app"
+- Select your repository: `egba4444/form13f_aiagent`
+- Set main file path: `src/ui/app.py`
+- Click "Deploy"
+
+3. **Configure Environment Variables**
+Add in Streamlit Cloud settings:
+```bash
+API_BASE_URL=https://your-app.up.railway.app
+```
+
+**Done!** Your UI will be live at `https://your-username-form13f-aiagent.streamlit.app`
+
+**Note**: Streamlit Cloud uses `requirements.txt` for dependencies, which is included in the repository.
+
 ## 📁 Project Structure
 
 ```
@@ -281,7 +308,48 @@ See `docs/SQL_SCHEMA.md` for complete schema.
 | "What was the average portfolio value in Q4 2024?" | Analytics | ✅ |
 | "Show me all tech holdings across all managers" | Complex | ✅ |
 
-### 5. Future: RAG for Commentary (Phase 7)
+### 5. Interactive Visualizations
+The Streamlit UI includes 4 tabs with interactive Plotly visualizations:
+
+**💬 Chat Tab**
+- Natural language query interface
+- Real-time SQL generation and execution
+- CSV export of query results
+
+**📈 Portfolio Explorer**
+- Search and select institutional managers
+- Portfolio composition charts (pie/bar)
+- Key metrics: total value, concentration, holdings count
+- Top holdings breakdown with percentages
+
+**🔍 Security Analysis**
+- Institutional ownership analysis by CUSIP/ticker
+- Top holders visualization
+- Ownership concentration metrics (Herfindahl Index)
+- Quarter-over-quarter ownership changes
+
+**🚀 Top Movers**
+- Biggest portfolio position increases/decreases
+- Color-coded charts (green=increase, red=decrease)
+- Filter by time period
+- Percentage and dollar value changes
+
+All visualizations are:
+- Interactive (hover, zoom, pan)
+- Responsive (mobile-friendly)
+- Cached for performance (5-minute TTL)
+
+### 6. Analytics API Endpoints
+FastAPI provides dedicated analytics endpoints:
+
+- `GET /api/v1/analytics/portfolio/{cik}` - Portfolio composition and top holdings
+- `GET /api/v1/analytics/security/{cusip}` - Institutional ownership analysis
+- `GET /api/v1/analytics/movers` - Biggest position changes across managers
+- `GET /api/v1/managers` - Search and list institutional managers
+
+See API docs at `/docs` for full endpoint documentation.
+
+### 7. Future: RAG for Commentary (Phase 7)
 When added, the system will:
 - Store explanatory notes and commentary in vector database
 - Use RAG for unstructured text queries
@@ -382,5 +450,6 @@ For questions or feedback, please open an issue.
 
 ---
 
-**Status**: 🚧 Phase 1 Implementation Starting
+**Status**: ✅ Phases 1-6 Complete - Production Ready
 **Architecture**: SQL-First (RAG optional in Phase 7)
+**Live Demo**: [Streamlit Cloud](https://your-app.streamlit.app) | [API](https://your-app.up.railway.app)
