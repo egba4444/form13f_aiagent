@@ -1,7 +1,7 @@
 """
 Streamlit UI for Form 13F AI Agent
 
-A chat interface for querying institutional holdings data.
+A chat interface for querying institutional holdings data with visualizations.
 """
 
 import streamlit as st
@@ -313,19 +313,292 @@ def create_movers_chart(movers_data: Dict[str, Any]) -> go.Figure:
     return fig
 
 
-def main():
-    # Initialize chat history FIRST (before any UI interactions)
+def render_chat_tab():
+    """Render the chat interface tab"""
+    # Initialize chat history
     if "messages" not in st.session_state:
         st.session_state.messages = [
             {
                 "role": "assistant",
-                "content": "Hello! I'm your Form 13F AI assistant. Ask me questions about institutional holdings data. Try one of the example queries in the sidebar!"
+                "content": "Hello! I'm your Form 13F AI assistant. Ask me questions about institutional holdings data."
             }
         ]
 
+    # Display chat messages
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            content = message["content"].replace('∗', '*')
+            st.markdown(content, unsafe_allow_html=False)
+
+            # Display SQL if available
+            if "sql" in message:
+                st.markdown("**Generated SQL:**")
+                st.markdown(f'<div class="sql-box">{message["sql"]}</div>', unsafe_allow_html=True)
+
+            # Display table if available
+            if "data" in message and message["data"]:
+                st.markdown("**Query Results:**")
+                df = pd.DataFrame(message["data"])
+                st.dataframe(df, use_container_width=True)
+
+                # Download button
+                csv = df.to_csv(index=False)
+                st.download_button(
+                    label="Download CSV",
+                    data=csv,
+                    file_name="query_results.csv",
+                    mime="text/csv"
+                )
+
+    # Chat input
+    if prompt := st.chat_input("Ask a question about Form 13F holdings..."):
+        # Add user message
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        # Get AI response
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                response = query_agent(prompt)
+
+            if response.get("success"):
+                answer = response.get("answer", "I found the results for your query.")
+                answer = answer.replace('∗', '*')
+                st.markdown(answer, unsafe_allow_html=False)
+
+                message_data = {"role": "assistant", "content": answer}
+
+                # Show SQL
+                if response.get("sql_query"):
+                    st.markdown("**Generated SQL:**")
+                    st.markdown(f'<div class="sql-box">{response["sql_query"]}</div>', unsafe_allow_html=True)
+                    message_data["sql"] = response["sql_query"]
+
+                # Show data table
+                if response.get("raw_data") and len(response["raw_data"]) > 0:
+                    st.markdown("**Query Results:**")
+                    df = pd.DataFrame(response["raw_data"])
+                    st.dataframe(df, use_container_width=True)
+                    message_data["data"] = response["raw_data"]
+
+                    # Download button
+                    csv = df.to_csv(index=False)
+                    st.download_button(
+                        label="Download CSV",
+                        data=csv,
+                        file_name="query_results.csv",
+                        mime="text/csv"
+                    )
+
+                st.session_state.messages.append(message_data)
+            else:
+                error_msg = response.get("answer", response.get("error", "Unknown error occurred"))
+                st.error(error_msg)
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": f"⚠️ {error_msg}"
+                })
+
+
+def render_portfolio_explorer_tab():
+    """Render the portfolio explorer tab"""
+    st.subheader("Portfolio Explorer")
+    st.markdown("Explore institutional investment managers and their portfolio compositions")
+
+    # Manager selection
+    col1, col2 = st.columns([3, 1])
+
+    with col1:
+        manager_search = st.text_input("Search for a manager", placeholder="e.g., Berkshire Hathaway")
+
+    managers = fetch_managers(manager_search if manager_search else "")
+
+    if managers:
+        manager_options = {f"{m['name']} (CIK: {m['cik']})": m['cik'] for m in managers}
+        selected_manager = st.selectbox("Select Manager", options=list(manager_options.keys()))
+
+        if selected_manager:
+            cik = manager_options[selected_manager]
+
+            with col2:
+                top_n = st.slider("Top N Holdings", min_value=5, max_value=50, value=20)
+
+            # Fetch portfolio data
+            portfolio_data = fetch_portfolio_composition(cik, top_n)
+
+            if portfolio_data:
+                # Portfolio summary
+                col_a, col_b, col_c = st.columns(3)
+                with col_a:
+                    st.metric("Total Value", f"${portfolio_data['total_value']:,.0f}")
+                with col_b:
+                    st.metric("Number of Holdings", f"{portfolio_data['number_of_holdings']:,}")
+                with col_c:
+                    st.metric("Period", portfolio_data['period'])
+
+                # Concentration metrics
+                st.markdown("**Concentration Metrics:**")
+                col_d, col_e = st.columns(2)
+                with col_d:
+                    st.info(f"Top 5 Holdings: {portfolio_data['concentration']['top5_percent']}% of portfolio")
+                with col_e:
+                    st.info(f"Top 10 Holdings: {portfolio_data['concentration']['top10_percent']}% of portfolio")
+
+                st.markdown("---")
+
+                # Visualizations
+                viz_tab1, viz_tab2 = st.tabs(["Bar Chart", "Pie Chart"])
+
+                with viz_tab1:
+                    fig = create_portfolio_bar_chart(portfolio_data)
+                    st.plotly_chart(fig, use_container_width=True)
+
+                with viz_tab2:
+                    fig = create_portfolio_pie_chart(portfolio_data)
+                    st.plotly_chart(fig, use_container_width=True)
+
+                # Holdings table
+                st.markdown("**Holdings Details:**")
+                holdings_df = pd.DataFrame(portfolio_data['top_holdings'])
+                holdings_df['value'] = holdings_df['value'].apply(lambda x: f"${x:,.0f}")
+                holdings_df['shares_or_principal'] = holdings_df['shares_or_principal'].apply(lambda x: f"{x:,.0f}")
+                holdings_df['percent_of_portfolio'] = holdings_df['percent_of_portfolio'].apply(lambda x: f"{x:.2f}%")
+                st.dataframe(holdings_df, use_container_width=True)
+    else:
+        st.info("No managers found. Try adjusting your search.")
+
+
+def render_security_analysis_tab():
+    """Render security ownership analysis tab"""
+    st.subheader("Security Ownership Analysis")
+    st.markdown("Analyze institutional ownership of specific securities")
+
+    # CUSIP input
+    cusip_input = st.text_input("Enter CUSIP (9 characters)", placeholder="e.g., 037833100 for Apple")
+
+    if cusip_input and len(cusip_input) == 9:
+        top_n = st.slider("Top N Holders", min_value=5, max_value=50, value=20, key="sec_top_n")
+
+        # Fetch security data
+        security_data = fetch_security_analysis(cusip_input, top_n)
+
+        if security_data:
+            # Security summary
+            st.markdown(f"### {security_data['title_of_class']}")
+
+            col_a, col_b, col_c, col_d = st.columns(4)
+            with col_a:
+                st.metric("Total Shares", f"{security_data['total_institutional_shares']:,}")
+            with col_b:
+                st.metric("Total Value", f"${security_data['total_institutional_value']:,.0f}")
+            with col_c:
+                st.metric("Number of Holders", f"{security_data['number_of_holders']:,}")
+            with col_d:
+                st.metric("Period", security_data['period'])
+
+            # Concentration metrics
+            st.markdown("**Ownership Concentration:**")
+            col_e, col_f, col_g = st.columns(3)
+            with col_e:
+                st.info(f"Top 5 Holders: {security_data['concentration']['top5_percent']}%")
+            with col_f:
+                st.info(f"Top 10 Holders: {security_data['concentration']['top10_percent']}%")
+            with col_g:
+                hhi = security_data['concentration'].get('herfindahl_index', 0)
+                st.info(f"Herfindahl Index: {hhi:.4f}")
+
+            st.markdown("---")
+
+            # Visualization
+            fig = create_security_ownership_chart(security_data)
+            st.plotly_chart(fig, use_container_width=True)
+
+            # Holders table
+            st.markdown("**Top Holders Details:**")
+            holders_df = pd.DataFrame(security_data['top_holders'])
+            holders_df['shares'] = holders_df['shares'].apply(lambda x: f"{x:,.0f}")
+            holders_df['value'] = holders_df['value'].apply(lambda x: f"${x:,.0f}")
+            holders_df['percent_of_total'] = holders_df['percent_of_total'].apply(lambda x: f"{x:.2f}%")
+            st.dataframe(holders_df, use_container_width=True)
+    elif cusip_input:
+        st.warning("CUSIP must be exactly 9 characters")
+
+
+def render_top_movers_tab():
+    """Render top movers tab"""
+    st.subheader("Top Position Changes")
+    st.markdown("View the biggest position changes quarter-over-quarter")
+
+    top_n = st.slider("Number of Movers", min_value=5, max_value=50, value=10, key="movers_top_n")
+
+    # Fetch movers data
+    movers_data = fetch_top_movers(top_n)
+
+    if movers_data:
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.metric("Period From", movers_data['period_from'])
+        with col_b:
+            st.metric("Period To", movers_data['period_to'])
+
+        st.markdown("---")
+
+        # Visualization
+        if movers_data['biggest_increases'] or movers_data['biggest_decreases']:
+            fig = create_movers_chart(movers_data)
+            st.plotly_chart(fig, use_container_width=True)
+
+        # Detailed tables
+        tab1, tab2, tab3, tab4 = st.tabs(["Increases", "Decreases", "New Positions", "Closed Positions"])
+
+        with tab1:
+            if movers_data['biggest_increases']:
+                st.markdown("**Biggest Increases:**")
+                increases_df = pd.DataFrame(movers_data['biggest_increases'])
+                increases_df = increases_df[[
+                    'manager_name', 'title_of_class', 'previous_value', 'current_value',
+                    'value_change', 'value_change_percent'
+                ]]
+                increases_df['previous_value'] = increases_df['previous_value'].apply(lambda x: f"${x:,.0f}")
+                increases_df['current_value'] = increases_df['current_value'].apply(lambda x: f"${x:,.0f}")
+                increases_df['value_change'] = increases_df['value_change'].apply(lambda x: f"${x:+,.0f}")
+                increases_df['value_change_percent'] = increases_df['value_change_percent'].apply(lambda x: f"{x:+.1f}%")
+                st.dataframe(increases_df, use_container_width=True)
+
+        with tab2:
+            if movers_data['biggest_decreases']:
+                st.markdown("**Biggest Decreases:**")
+                decreases_df = pd.DataFrame(movers_data['biggest_decreases'])
+                decreases_df = decreases_df[[
+                    'manager_name', 'title_of_class', 'previous_value', 'current_value',
+                    'value_change', 'value_change_percent'
+                ]]
+                decreases_df['previous_value'] = decreases_df['previous_value'].apply(lambda x: f"${x:,.0f}")
+                decreases_df['current_value'] = decreases_df['current_value'].apply(lambda x: f"${x:,.0f}")
+                decreases_df['value_change'] = decreases_df['value_change'].apply(lambda x: f"${x:+,.0f}")
+                decreases_df['value_change_percent'] = decreases_df['value_change_percent'].apply(lambda x: f"{x:+.1f}%")
+                st.dataframe(decreases_df, use_container_width=True)
+
+        with tab3:
+            if movers_data['new_positions']:
+                st.markdown("**New Positions:**")
+                st.info(f"Total: {len(movers_data['new_positions'])} new positions")
+                new_df = pd.DataFrame(movers_data['new_positions'][:20])  # Show top 20
+                st.dataframe(new_df, use_container_width=True)
+
+        with tab4:
+            if movers_data['closed_positions']:
+                st.markdown("**Closed Positions:**")
+                st.info(f"Total: {len(movers_data['closed_positions'])} closed positions")
+                closed_df = pd.DataFrame(movers_data['closed_positions'][:20])  # Show top 20
+                st.dataframe(closed_df, use_container_width=True)
+
+
+def main():
     # Header
     st.markdown('<div class="main-header">📊 Form 13F AI Agent</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Ask questions about institutional investor holdings in natural language</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header">Explore institutional holdings data with AI-powered natural language queries and interactive visualizations</div>', unsafe_allow_html=True)
 
     # Sidebar with stats
     with st.sidebar:
@@ -373,164 +646,35 @@ def main():
             st.info(f"**Latest Quarter:** {stats.get('latest_quarter', 'N/A')}")
 
             if stats.get('total_value'):
-                total_value_trillions = stats['total_value'] / 1_000_000_000
-                st.success(f"**Total Value:** ${total_value_trillions:.2f}T")
+                total_value_billions = stats['total_value'] / 1_000_000_000
+                st.success(f"**Total Value:** ${total_value_billions:.2f}B")
 
         st.markdown("---")
+        st.markdown("**Quick Navigation:**")
+        st.markdown("- 💬 **Chat**: Natural language queries")
+        st.markdown("- 📈 **Portfolio Explorer**: Analyze manager portfolios")
+        st.markdown("- 🔍 **Security Analysis**: Institutional ownership")
+        st.markdown("- 🚀 **Top Movers**: Position changes")
 
-        # Example queries
-        st.subheader("Example Queries")
-        examples = [
-            "Show me the 5 largest holdings by value",
-            "Which managers filed in the last quarter?",
-            "List all Apple holdings",
-            "Show me Berkshire Hathaway's recent filings",
-            "What are the top 10 holdings by share count?"
-        ]
+    # Main tabs
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "💬 Chat",
+        "📈 Portfolio Explorer",
+        "🔍 Security Analysis",
+        "🚀 Top Movers"
+    ])
 
-        for example in examples:
-            if st.button(example, key=f"example_{hash(example)}", use_container_width=True):
-                st.session_state.example_query = example
+    with tab1:
+        render_chat_tab()
 
-    # Display chat messages
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            # Clean up any problematic markdown that causes rendering issues
-            content = message["content"]
-            # Remove any Unicode asterisks that might cause issues
-            content = content.replace('∗', '*')
-            st.markdown(content, unsafe_allow_html=False)
+    with tab2:
+        render_portfolio_explorer_tab()
 
-            # Display SQL if available
-            if "sql" in message:
-                st.markdown("**Generated SQL:**")
-                st.markdown(f'<div class="sql-box">{message["sql"]}</div>', unsafe_allow_html=True)
+    with tab3:
+        render_security_analysis_tab()
 
-            # Display table if available
-            if "data" in message and message["data"]:
-                st.markdown("**Query Results:**")
-                df = pd.DataFrame(message["data"])
-                st.dataframe(df, use_container_width=True)
-
-                # Download button
-                csv = df.to_csv(index=False)
-                st.download_button(
-                    label="Download CSV",
-                    data=csv,
-                    file_name="query_results.csv",
-                    mime="text/csv"
-                )
-
-    # Handle example query from sidebar
-    if "example_query" in st.session_state:
-        user_input = st.session_state.example_query
-        del st.session_state.example_query
-
-        # Add user message
-        st.session_state.messages.append({"role": "user", "content": user_input})
-        with st.chat_message("user"):
-            st.markdown(user_input)
-
-        # Get AI response
-        with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
-                response = query_agent(user_input)
-
-            if response.get("success"):
-                # Format response
-                answer = response.get("answer", "I found the results for your query.")
-                # Clean up any problematic markdown that causes rendering issues
-                answer = answer.replace('∗', '*')
-                st.markdown(answer, unsafe_allow_html=False)
-
-                message_data = {"role": "assistant", "content": answer}
-
-                # Show SQL
-                if response.get("sql_query"):
-                    st.markdown("**Generated SQL:**")
-                    st.markdown(f'<div class="sql-box">{response["sql_query"]}</div>', unsafe_allow_html=True)
-                    message_data["sql"] = response["sql_query"]
-
-                # Show data table
-                if response.get("raw_data") and len(response["raw_data"]) > 0:
-                    st.markdown("**Query Results:**")
-                    df = pd.DataFrame(response["raw_data"])
-                    st.dataframe(df, use_container_width=True)
-                    message_data["data"] = response["raw_data"]
-
-                    # Download button
-                    csv = df.to_csv(index=False)
-                    st.download_button(
-                        label="Download CSV",
-                        data=csv,
-                        file_name="query_results.csv",
-                        mime="text/csv"
-                    )
-
-                st.session_state.messages.append(message_data)
-            else:
-                # Show the answer field which contains the custom error message
-                error_msg = response.get("answer", response.get("error", "Unknown error occurred"))
-                st.error(error_msg)
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": f"⚠️ {error_msg}"
-                })
-
-        st.rerun()
-
-    # Chat input
-    if prompt := st.chat_input("Ask a question about Form 13F holdings..."):
-        # Add user message
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
-
-        # Get AI response
-        with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
-                response = query_agent(prompt)
-
-            if response.get("success"):
-                # Format response
-                answer = response.get("answer", "I found the results for your query.")
-                # Clean up any problematic markdown that causes rendering issues
-                answer = answer.replace('∗', '*')
-                st.markdown(answer, unsafe_allow_html=False)
-
-                message_data = {"role": "assistant", "content": answer}
-
-                # Show SQL
-                if response.get("sql_query"):
-                    st.markdown("**Generated SQL:**")
-                    st.markdown(f'<div class="sql-box">{response["sql_query"]}</div>', unsafe_allow_html=True)
-                    message_data["sql"] = response["sql_query"]
-
-                # Show data table
-                if response.get("raw_data") and len(response["raw_data"]) > 0:
-                    st.markdown("**Query Results:**")
-                    df = pd.DataFrame(response["raw_data"])
-                    st.dataframe(df, use_container_width=True)
-                    message_data["data"] = response["raw_data"]
-
-                    # Download button
-                    csv = df.to_csv(index=False)
-                    st.download_button(
-                        label="Download CSV",
-                        data=csv,
-                        file_name="query_results.csv",
-                        mime="text/csv"
-                    )
-
-                st.session_state.messages.append(message_data)
-            else:
-                # Show the answer field which contains the custom error message
-                error_msg = response.get("answer", response.get("error", "Unknown error occurred"))
-                st.error(error_msg)
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": f"⚠️ {error_msg}"
-                })
+    with tab4:
+        render_top_movers_tab()
 
 
 if __name__ == "__main__":
