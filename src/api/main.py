@@ -250,11 +250,20 @@ async def get_stats():
 
     Returns counts of managers, filings, holdings, etc.
     """
-    try:
-        database_url = get_database_url()
-        engine = create_engine(database_url)
+    global _health_check_engine
 
-        with engine.connect() as conn:
+    try:
+        # Reuse the health check engine to avoid connection pool exhaustion
+        if _health_check_engine is None:
+            database_url = get_database_url()
+            _health_check_engine = create_engine(
+                database_url,
+                pool_size=1,
+                max_overflow=0,
+                pool_pre_ping=True
+            )
+
+        with _health_check_engine.connect() as conn:
             # Count records
             managers_count = conn.execute(text("SELECT COUNT(*) FROM managers")).scalar()
             issuers_count = conn.execute(text("SELECT COUNT(*) FROM issuers")).scalar()
@@ -294,6 +303,7 @@ async def debug_database():
 
     Returns detailed diagnostics about the database connection.
     """
+    global _health_check_engine
     import traceback
     from urllib.parse import urlparse
 
@@ -321,15 +331,16 @@ async def debug_database():
                 "username": parsed.username
             }
 
-            # Test connection
-            engine = create_engine(
-                database_url,
-                pool_size=1,
-                max_overflow=0,
-                pool_pre_ping=True
-            )
+            # Reuse shared engine to avoid connection pool exhaustion
+            if _health_check_engine is None:
+                _health_check_engine = create_engine(
+                    database_url,
+                    pool_size=1,
+                    max_overflow=0,
+                    pool_pre_ping=True
+                )
 
-            with engine.connect() as conn:
+            with _health_check_engine.connect() as conn:
                 # Test query
                 test_result = conn.execute(text("SELECT 1 as test")).scalar()
 
@@ -350,7 +361,7 @@ async def debug_database():
                     "table_count": table_count
                 }
 
-            engine.dispose()
+            # Don't dispose - engine is shared across endpoints
         else:
             result["error"] = "DATABASE_URL environment variable is not set"
 
