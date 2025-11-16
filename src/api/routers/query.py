@@ -68,7 +68,37 @@ async def query_agent(
     except Exception as e:
         logger.error(f"Query error: {e}", exc_info=True)
 
-        # Return error response
+        # Check for rate limit or token limit errors
+        error_str = str(e).lower()
+        is_rate_limit = any(phrase in error_str for phrase in [
+            "rate_limit_error",
+            "rate limit",
+            "too many requests",
+            "quota exceeded"
+        ])
+        is_token_limit = any(phrase in error_str for phrase in [
+            "maximum context length",
+            "token limit",
+            "context_length_exceeded",
+            "too many tokens"
+        ])
+
+        # Use custom error message for rate/token limits
+        if is_rate_limit or is_token_limit:
+            custom_message = (
+                "The developer doesn't have enough money to pay for a question this complex. "
+                "Please rephrase or ask something simpler."
+            )
+            return QueryResponse(
+                success=False,
+                answer=custom_message,
+                execution_time_ms=0,
+                tool_calls=0,
+                turns=0,
+                error=custom_message
+            )
+
+        # Return generic error response for other errors
         return QueryResponse(
             success=False,
             answer=f"I encountered an error processing your question: {str(e)}",
