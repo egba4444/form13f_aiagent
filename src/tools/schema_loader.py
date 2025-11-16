@@ -119,9 +119,12 @@ class SchemaLoader:
             lines.append("")
             lines.append("**Indexes:**")
             for idx in indexes[:5]:  # Top 5 indexes
-                idx_cols = ', '.join(idx['column_names'])
-                unique = " (UNIQUE)" if idx.get('unique') else ""
-                lines.append(f"- `{idx['name']}`: ({idx_cols}){unique}")
+                # Filter out None values from column_names
+                col_names = [col for col in idx['column_names'] if col is not None]
+                if col_names:  # Only show index if it has valid columns
+                    idx_cols = ', '.join(col_names)
+                    unique = " (UNIQUE)" if idx.get('unique') else ""
+                    lines.append(f"- `{idx['name']}`: ({idx_cols}){unique}")
 
         return lines
 
