@@ -410,14 +410,15 @@ async def clear_cache():
 
 
 # Import routers
-from .routers import query
+from .routers import query, managers, filings, holdings
+
+# Natural language query router
 app.include_router(query.router, prefix="/api/v1", tags=["Query"])
 
-# Additional routers (to be implemented)
-# from .routers import managers, filings, holdings
-# app.include_router(managers.router, prefix="/api/v1", tags=["Managers"])
-# app.include_router(filings.router, prefix="/api/v1", tags=["Filings"])
-# app.include_router(holdings.router, prefix="/api/v1", tags=["Holdings"])
+# REST data access routers
+app.include_router(managers.router, prefix="/api/v1", tags=["Managers"])
+app.include_router(filings.router, prefix="/api/v1", tags=["Filings"])
+app.include_router(holdings.router, prefix="/api/v1", tags=["Holdings"])
 
 
 if __name__ == "__main__":
