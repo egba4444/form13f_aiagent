@@ -7,8 +7,11 @@ A chat interface for querying institutional holdings data.
 import streamlit as st
 import httpx
 import os
-from typing import Optional
+from typing import Optional, List, Dict, Any
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 # Configuration
 API_BASE_URL = os.getenv("API_BASE_URL", "https://form13f-aiagent-production.up.railway.app")
@@ -92,6 +95,69 @@ def fetch_stats() -> Optional[dict]:
         return None
 
 
+@st.cache_data(ttl=300)
+def fetch_managers(name_filter: str = "") -> List[Dict[str, Any]]:
+    """Fetch list of managers"""
+    try:
+        params = {"page_size": 100}
+        if name_filter:
+            params["name"] = name_filter
+        response = httpx.get(f"{API_BASE_URL}/api/v1/managers", params=params, timeout=10.0)
+        response.raise_for_status()
+        return response.json()["managers"]
+    except Exception as e:
+        st.error(f"Failed to fetch managers: {e}")
+        return []
+
+
+@st.cache_data(ttl=300)
+def fetch_portfolio_composition(cik: str, top_n: int = 20) -> Optional[Dict[str, Any]]:
+    """Fetch portfolio composition for a manager"""
+    try:
+        response = httpx.get(
+            f"{API_BASE_URL}/api/v1/analytics/portfolio/{cik}",
+            params={"top_n": top_n},
+            timeout=30.0
+        )
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        st.error(f"Failed to fetch portfolio: {e}")
+        return None
+
+
+@st.cache_data(ttl=300)
+def fetch_security_analysis(cusip: str, top_n: int = 20) -> Optional[Dict[str, Any]]:
+    """Fetch security ownership analysis"""
+    try:
+        response = httpx.get(
+            f"{API_BASE_URL}/api/v1/analytics/security/{cusip}",
+            params={"top_n": top_n},
+            timeout=30.0
+        )
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        st.error(f"Failed to fetch security analysis: {e}")
+        return None
+
+
+@st.cache_data(ttl=300)
+def fetch_top_movers(top_n: int = 10) -> Optional[Dict[str, Any]]:
+    """Fetch top position movers"""
+    try:
+        response = httpx.get(
+            f"{API_BASE_URL}/api/v1/analytics/movers",
+            params={"top_n": top_n},
+            timeout=60.0
+        )
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        st.error(f"Failed to fetch top movers: {e}")
+        return None
+
+
 def query_agent(query: str) -> dict:
     """Send query to the AI agent"""
     try:
@@ -117,6 +183,134 @@ def query_agent(query: str) -> dict:
 def format_number(num: int) -> str:
     """Format large numbers with commas"""
     return f"{num:,}"
+
+
+def create_portfolio_pie_chart(portfolio_data: Dict[str, Any]) -> go.Figure:
+    """Create portfolio composition pie chart"""
+    top_holdings = portfolio_data["top_holdings"]
+
+    labels = [h["title_of_class"] for h in top_holdings]
+    values = [h["value"] for h in top_holdings]
+    percentages = [h["percent_of_portfolio"] for h in top_holdings]
+
+    fig = go.Figure(data=[go.Pie(
+        labels=labels,
+        values=values,
+        textinfo='label+percent',
+        hovertemplate='<b>%{label}</b><br>Value: $%{value:,.0f}<br>Portfolio %: %{customdata:.2f}%<extra></extra>',
+        customdata=percentages
+    )])
+
+    fig.update_layout(
+        title=f"Top {len(top_holdings)} Holdings - {portfolio_data['manager_name']}",
+        height=500
+    )
+
+    return fig
+
+
+def create_portfolio_bar_chart(portfolio_data: Dict[str, Any]) -> go.Figure:
+    """Create portfolio holdings bar chart"""
+    top_holdings = portfolio_data["top_holdings"]
+
+    df = pd.DataFrame(top_holdings)
+    df = df.sort_values("value", ascending=True)
+
+    fig = go.Figure(data=[go.Bar(
+        y=df["title_of_class"],
+        x=df["value"],
+        orientation='h',
+        text=df["percent_of_portfolio"].apply(lambda x: f"{x:.1f}%"),
+        textposition='outside',
+        hovertemplate='<b>%{y}</b><br>Value: $%{x:,.0f}<br>Shares: %{customdata:,.0f}<extra></extra>',
+        customdata=df["shares_or_principal"]
+    )])
+
+    fig.update_layout(
+        title=f"Portfolio Holdings - {portfolio_data['manager_name']}",
+        xaxis_title="Value (USD)",
+        yaxis_title="",
+        height=max(400, len(top_holdings) * 30),
+        showlegend=False
+    )
+
+    return fig
+
+
+def create_security_ownership_chart(security_data: Dict[str, Any]) -> go.Figure:
+    """Create security ownership bar chart"""
+    top_holders = security_data["top_holders"]
+
+    df = pd.DataFrame(top_holders)
+    df = df.sort_values("value", ascending=True)
+
+    fig = go.Figure(data=[go.Bar(
+        y=df["manager_name"],
+        x=df["shares"],
+        orientation='h',
+        text=df["percent_of_total"].apply(lambda x: f"{x:.1f}%"),
+        textposition='outside',
+        hovertemplate='<b>%{y}</b><br>Shares: %{x:,.0f}<br>Value: $%{customdata:,.0f}<extra></extra>',
+        customdata=df["value"]
+    )])
+
+    fig.update_layout(
+        title=f"Top Institutional Holders - {security_data['title_of_class']}",
+        xaxis_title="Shares",
+        yaxis_title="",
+        height=max(400, len(top_holders) * 30),
+        showlegend=False
+    )
+
+    return fig
+
+
+def create_movers_chart(movers_data: Dict[str, Any]) -> go.Figure:
+    """Create top movers chart"""
+    increases = movers_data.get("biggest_increases", [])[:10]
+    decreases = movers_data.get("biggest_decreases", [])[:10]
+
+    # Combine and sort by absolute percentage change
+    all_movers = []
+    for mover in increases:
+        all_movers.append({
+            "name": f"{mover['manager_name'][:20]} - {mover['title_of_class'][:20]}",
+            "change_pct": mover["value_change_percent"],
+            "change_value": mover["value_change"]
+        })
+    for mover in decreases:
+        all_movers.append({
+            "name": f"{mover['manager_name'][:20]} - {mover['title_of_class'][:20]}",
+            "change_pct": mover["value_change_percent"],
+            "change_value": mover["value_change"]
+        })
+
+    df = pd.DataFrame(all_movers)
+    df = df.sort_values("change_pct", ascending=True)
+
+    # Color based on positive/negative
+    colors = ['green' if x > 0 else 'red' for x in df["change_pct"]]
+
+    fig = go.Figure(data=[go.Bar(
+        y=df["name"],
+        x=df["change_pct"],
+        orientation='h',
+        marker_color=colors,
+        text=df["change_pct"].apply(lambda x: f"{x:+.1f}%"),
+        textposition='outside',
+        hovertemplate='<b>%{y}</b><br>Change: %{x:+.1f}%<br>Value Change: $%{customdata:+,.0f}<extra></extra>',
+        customdata=df["change_value"]
+    )])
+
+    fig.update_layout(
+        title="Biggest Position Changes (Quarter-over-Quarter)",
+        xaxis_title="Value Change %",
+        yaxis_title="",
+        height=max(500, len(all_movers) * 25),
+        showlegend=False
+    )
+
+    return fig
 
 
 def main():
