@@ -51,11 +51,8 @@ RUN mkdir -p data/raw data/processed data/cache && \
 
 USER appuser
 
-# Expose FastAPI port
-EXPOSE 8000
-
 # Activate virtual environment and run uvicorn
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Default command - Railway will override with railway.toml startCommand
-CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Default command - uses $PORT env var from Railway (defaults to 8000)
+CMD uvicorn src.api.main:app --host 0.0.0.0 --port ${PORT:-8000}
