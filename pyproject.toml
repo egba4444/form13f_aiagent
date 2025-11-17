@@ -49,6 +49,10 @@ dependencies = [
     # UI
     "streamlit>=1.30.0",
     "plotly>=5.18.0",
+
+    # Authentication
+    "supabase>=2.0.0",
+    "python-jose[cryptography]>=3.3.0",
 ]
 
 [project.optional-dependencies]

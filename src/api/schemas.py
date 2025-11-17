@@ -269,3 +269,56 @@ class SecurityAnalysisResponse(BaseModel):
         ...,
         description="Ownership concentration metrics"
     )
+
+
+# ============================================================================
+# Watchlist Models
+# ============================================================================
+
+class WatchlistItemCreate(BaseModel):
+    """Request to add item to watchlist"""
+
+    item_type: str = Field(..., description="Type: 'manager' or 'security'")
+    cik: Optional[str] = Field(None, description="Manager CIK (if type=manager)")
+    cusip: Optional[str] = Field(None, description="Security CUSIP (if type=security)")
+    notes: Optional[str] = Field(None, description="Optional notes about this item")
+
+
+class WatchlistItemUpdate(BaseModel):
+    """Request to update watchlist item"""
+
+    notes: Optional[str] = Field(None, description="Update notes")
+
+
+class WatchlistItemResponse(BaseModel):
+    """Watchlist item with details"""
+
+    id: int = Field(..., description="Item ID")
+    item_type: str = Field(..., description="Type: 'manager' or 'security'")
+    cik: Optional[str] = Field(None, description="Manager CIK")
+    cusip: Optional[str] = Field(None, description="Security CUSIP")
+    name: Optional[str] = Field(None, description="Manager or security name")
+    notes: Optional[str] = Field(None, description="User notes")
+    added_at: datetime = Field(..., description="When item was added")
+
+    # Metrics (optional, depends on item type)
+    latest_value: Optional[int] = Field(None, description="Latest portfolio/holding value")
+    value_change_percent: Optional[float] = Field(None, description="Period-over-period change %")
+    latest_period: Optional[str] = Field(None, description="Latest reporting period")
+
+    class Config:
+        from_attributes = True
+
+
+class WatchlistResponse(BaseModel):
+    """User's watchlist with all items"""
+
+    id: int = Field(..., description="Watchlist ID")
+    name: str = Field(..., description="Watchlist name")
+    user_id: str = Field(..., description="User ID (UUID)")
+    created_at: datetime = Field(..., description="When watchlist was created")
+    updated_at: datetime = Field(..., description="Last update time")
+    items: List[WatchlistItemResponse] = Field(..., description="Watchlist items")
+
+    class Config:
+        from_attributes = True
