@@ -79,6 +79,28 @@ st.markdown("""
     .example-query:hover {
         background-color: #e5e7eb;
     }
+
+    /* Fix chat input to bottom */
+    .stChatFloatingInputContainer {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        background-color: white !important;
+        border-top: 1px solid #e5e7eb !important;
+        padding: 1rem !important;
+        z-index: 999 !important;
+    }
+
+    /* Add padding to bottom of chat messages to prevent overlap with fixed input */
+    .stChatMessageContainer {
+        padding-bottom: 100px !important;
+    }
+
+    /* Ensure main content area has proper padding */
+    section[data-testid="stChatMessageContainer"] {
+        padding-bottom: 120px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
