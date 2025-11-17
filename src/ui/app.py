@@ -497,6 +497,15 @@ def render_portfolio_explorer_tab():
             portfolio_data = fetch_portfolio_composition(cik, top_n)
 
             if portfolio_data:
+                # Add to watchlist button
+                auth_headers = get_auth_headers()
+                if auth_headers:
+                    if st.button(f"⭐ Add {selected_manager.split(' (CIK:')[0]} to Watchlist", key=f"add_mgr_{cik}"):
+                        from watchlist_ui import add_to_watchlist
+                        if add_to_watchlist(API_BASE_URL, auth_headers, "manager", cik=cik):
+                            st.success(f"✅ Added {selected_manager.split(' (CIK:')[0]} to watchlist!")
+                            st.rerun()
+
                 # Portfolio summary
                 col_a, col_b, col_c = st.columns(3)
                 with col_a:
@@ -555,6 +564,15 @@ def render_security_analysis_tab():
         if security_data:
             # Security summary
             st.markdown(f"### {security_data['title_of_class']}")
+
+            # Add to watchlist button
+            auth_headers = get_auth_headers()
+            if auth_headers:
+                if st.button(f"⭐ Add {security_data['title_of_class']} to Watchlist", key=f"add_sec_{cusip_input}"):
+                    from watchlist_ui import add_to_watchlist
+                    if add_to_watchlist(API_BASE_URL, auth_headers, "security", cusip=cusip_input):
+                        st.success(f"✅ Added {security_data['title_of_class']} to watchlist!")
+                        st.rerun()
 
             col_a, col_b, col_c, col_d = st.columns(4)
             with col_a:
