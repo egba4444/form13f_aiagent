@@ -410,7 +410,10 @@ async def clear_cache():
 
 
 # Import routers
-from .routers import query, managers, filings, holdings, analytics_endpoints, watchlist
+from .routers import query, managers, filings, holdings, analytics_endpoints, watchlist, auth
+
+# Authentication router
+app.include_router(auth.router, prefix="/api/v1", tags=["Authentication"])
 
 # Natural language query router
 app.include_router(query.router, prefix="/api/v1", tags=["Query"])
