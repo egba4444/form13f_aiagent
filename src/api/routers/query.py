@@ -69,11 +69,20 @@ async def query_agent(
 
             return QueryResponse(**cached_response)
 
+        # Convert conversation history to dict format
+        conversation_history = None
+        if request.conversation_history:
+            conversation_history = [
+                {"role": msg.role, "content": msg.content}
+                for msg in request.conversation_history
+            ]
+
         # Execute query through agent
         result = agent.query(
             question=request.query,
             include_sql=request.include_sql,
-            include_raw_data=request.include_raw_data
+            include_raw_data=request.include_raw_data,
+            conversation_history=conversation_history
         )
 
         logger.info(

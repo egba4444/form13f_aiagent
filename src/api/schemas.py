@@ -10,6 +10,13 @@ from datetime import datetime
 
 
 # Query Endpoints
+class ConversationMessage(BaseModel):
+    """Single message in conversation history"""
+
+    role: str = Field(..., description="Message role: 'user' or 'assistant'")
+    content: str = Field(..., description="Message content")
+
+
 class QueryRequest(BaseModel):
     """Request model for natural language query"""
 
@@ -27,6 +34,10 @@ class QueryRequest(BaseModel):
     include_raw_data: bool = Field(
         default=False,
         description="Include raw query results in response"
+    )
+    conversation_history: Optional[List[ConversationMessage]] = Field(
+        default=None,
+        description="Previous conversation messages for context"
     )
 
 

@@ -158,12 +158,23 @@ def fetch_top_movers(top_n: int = 10) -> Optional[Dict[str, Any]]:
         return None
 
 
-def query_agent(query: str) -> dict:
-    """Send query to the AI agent"""
+def query_agent(query: str, conversation_history: Optional[List[Dict[str, str]]] = None) -> dict:
+    """Send query to the AI agent with optional conversation history"""
     try:
+        payload = {"query": query}
+
+        # Add conversation history if provided
+        if conversation_history:
+            # Convert to API format (role + content only, exclude other fields)
+            payload["conversation_history"] = [
+                {"role": msg["role"], "content": msg["content"]}
+                for msg in conversation_history
+                if msg.get("role") in ["user", "assistant"]
+            ]
+
         response = httpx.post(
             f"{API_BASE_URL}/api/v1/query",
-            json={"query": query},
+            json=payload,
             timeout=TIMEOUT
         )
         response.raise_for_status()
@@ -360,7 +371,12 @@ def render_chat_tab():
         # Get AI response
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
-                response = query_agent(prompt)
+                # Pass conversation history (exclude the welcome message and current prompt)
+                history = [
+                    msg for msg in st.session_state.messages[:-1]  # Exclude current user message
+                    if msg.get("role") in ["user", "assistant"]
+                ]
+                response = query_agent(prompt, conversation_history=history)
 
             if response.get("success"):
                 answer = response.get("answer", "I found the results for your query.")

@@ -73,7 +73,8 @@ class Agent:
         question: str,
         include_sql: bool = False,
         include_raw_data: bool = False,
-        max_turns: int = 10
+        max_turns: int = 10,
+        conversation_history: Optional[List[Dict[str, str]]] = None
     ) -> Dict[str, Any]:
         """
         Answer a question about Form 13F data.
@@ -83,6 +84,7 @@ class Agent:
             include_sql: Include generated SQL in response
             include_raw_data: Include raw query results in response
             max_turns: Maximum conversation turns (prevent infinite loops)
+            conversation_history: Optional list of previous messages for context
 
         Returns:
             Response dict with:
@@ -94,11 +96,19 @@ class Agent:
         """
         start_time = time.time()
 
-        # Add user message to conversation
-        messages = [
-            {"role": "system", "content": self.system_prompt},
-            {"role": "user", "content": question}
-        ]
+        # Build messages with conversation history
+        messages = [{"role": "system", "content": self.system_prompt}]
+
+        # Add conversation history if provided
+        if conversation_history:
+            # Filter out system messages from history (we already have one)
+            messages.extend([
+                msg for msg in conversation_history
+                if msg.get("role") != "system"
+            ])
+
+        # Add current user message
+        messages.append({"role": "user", "content": question})
 
         # Get SQL tool definition
         tool_def = self.sql_tool.get_tool_definition()
