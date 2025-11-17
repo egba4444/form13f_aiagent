@@ -14,7 +14,14 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 # Import auth UI components
-from auth_ui import require_auth, show_logout_button, get_auth_headers
+try:
+    from auth_ui import require_auth, show_logout_button, get_auth_headers
+except ImportError:
+    # Try alternate import path for different deployment environments
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).parent))
+    from auth_ui import require_auth, show_logout_button, get_auth_headers
 
 # Configuration
 API_BASE_URL = os.getenv("API_BASE_URL", "https://form13f-aiagent-production.up.railway.app")
