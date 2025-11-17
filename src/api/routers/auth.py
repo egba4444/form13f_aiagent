@@ -6,7 +6,7 @@ Handles user signup, signin, and signout via Supabase Auth.
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field, EmailStr
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import logging
 
 from ...auth.supabase_client import sign_up, sign_in, sign_out
@@ -31,9 +31,10 @@ class SignInRequest(BaseModel):
 class AuthResponse(BaseModel):
     """Authentication response"""
     success: bool
-    user: Dict[str, Any] = None
-    session: Dict[str, str] = None
-    error: str = None
+    user: Optional[Dict[str, Any]] = None
+    session: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+    message: Optional[str] = None
 
 
 @router.post("/auth/signup", response_model=AuthResponse)

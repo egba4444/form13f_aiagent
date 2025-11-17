@@ -112,16 +112,24 @@ def sign_up(email: str, password: str) -> Dict[str, Any]:
         })
 
         if response.user:
-            return {
+            result = {
                 "success": True,
                 "user": {
                     "id": response.user.id,
                     "email": response.user.email
-                },
-                "session": {
-                    "access_token": response.session.access_token if response.session else None
                 }
             }
+
+            # Include session if available (email confirmation might be required)
+            if response.session and response.session.access_token:
+                result["session"] = {
+                    "access_token": response.session.access_token,
+                    "refresh_token": response.session.refresh_token if hasattr(response.session, 'refresh_token') else None
+                }
+            else:
+                result["message"] = "Please check your email to confirm your account before signing in."
+
+            return result
         else:
             return {
                 "success": False,
