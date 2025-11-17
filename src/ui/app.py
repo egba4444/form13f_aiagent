@@ -13,6 +13,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+# Import auth UI components
+from auth_ui import require_auth, show_logout_button, get_auth_headers
+
 # Configuration
 API_BASE_URL = os.getenv("API_BASE_URL", "https://form13f-aiagent-production.up.railway.app")
 TIMEOUT = 120.0  # 2 minutes timeout for agent queries
@@ -24,6 +27,13 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Require authentication
+if not require_auth(API_BASE_URL):
+    st.stop()  # Stop execution if not authenticated
+
+# Show logout button
+show_logout_button()
 
 # Custom CSS
 st.markdown("""
