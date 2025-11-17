@@ -6,7 +6,19 @@ Handles login, signup, and session management.
 
 import streamlit as st
 import httpx
+import os
 from typing import Optional, Dict, Any
+from pathlib import Path
+
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    # Try to find .env in project root
+    env_path = Path(__file__).parent.parent.parent / ".env"
+    if env_path.exists():
+        load_dotenv(env_path)
+except ImportError:
+    pass  # dotenv not available in some environments
 
 
 def show_login_page(api_base_url: str) -> bool:

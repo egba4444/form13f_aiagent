@@ -24,7 +24,8 @@ except ImportError:
     from auth_ui import require_auth, show_logout_button, get_auth_headers
 
 # Configuration
-API_BASE_URL = os.getenv("API_BASE_URL", "https://form13f-aiagent-production.up.railway.app")
+# Use local API in development, Railway API in production
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 TIMEOUT = 120.0  # 2 minutes timeout for agent queries
 
 # Page configuration
