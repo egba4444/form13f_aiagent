@@ -69,7 +69,8 @@ async def query_agent(
             auth_token = parts[1]
 
     # Get API base URL for watchlist tool
-    api_base_url = os.getenv("API_BASE_URL", "http://localhost:8000")
+    # Use the production Railway URL for watchlist API calls
+    api_base_url = os.getenv("WATCHLIST_API_URL") or os.getenv("API_BASE_URL") or "https://form13f-aiagent-production.up.railway.app"
 
     # Create agent with optional auth for watchlist features
     database_url = get_database_url()
