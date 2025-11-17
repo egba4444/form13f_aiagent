@@ -16,12 +16,14 @@ from plotly.subplots import make_subplots
 # Import auth UI components
 try:
     from auth_ui import require_auth, show_logout_button, get_auth_headers
+    from watchlist_ui import show_watchlist_sidebar
 except ImportError:
     # Try alternate import path for different deployment environments
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).parent))
     from auth_ui import require_auth, show_logout_button, get_auth_headers
+    from watchlist_ui import show_watchlist_sidebar
 
 # Configuration
 # Use local API in development, Railway API in production
@@ -715,6 +717,11 @@ def main():
             if stats.get('total_value'):
                 total_value_billions = stats['total_value'] / 1_000_000_000
                 st.success(f"**Total Value:** ${total_value_billions:.2f}B")
+
+        # Show watchlist in sidebar
+        auth_headers = get_auth_headers()
+        if auth_headers:
+            show_watchlist_sidebar(API_BASE_URL, auth_headers)
 
         st.markdown("---")
         st.markdown("**Quick Navigation:**")
