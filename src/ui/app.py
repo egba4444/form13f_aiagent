@@ -26,9 +26,13 @@ except ImportError:
     from watchlist_ui import show_watchlist_sidebar
 
 # Configuration
-# Use local API in development, Railway API in production
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+# Use Railway API in production, local API in development
+API_BASE_URL = os.getenv("API_BASE_URL", "https://form13f-aiagent-production.up.railway.app")
 TIMEOUT = 120.0  # 2 minutes timeout for agent queries
+
+# For local development, override to use localhost
+if os.path.exists(".env"):
+    API_BASE_URL = "http://localhost:8000"
 
 # Page configuration
 st.set_page_config(
