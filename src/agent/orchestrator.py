@@ -47,8 +47,7 @@ class Agent:
         database_url: str,
         llm_client: Optional[LLMClient] = None,
         verbose: bool = False,
-        api_base_url: Optional[str] = None,
-        auth_token: Optional[str] = None
+        user_id: Optional[str] = None
     ):
         """
         Initialize agent.
@@ -57,8 +56,7 @@ class Agent:
             database_url: PostgreSQL connection string
             llm_client: LLM client (defaults to get_llm_client())
             verbose: Print debug information
-            api_base_url: Base URL for API (required for watchlist tool)
-            auth_token: User authentication token (required for watchlist tool)
+            user_id: User's UUID (required for watchlist tool)
         """
         self.database_url = database_url
         self.llm_client = llm_client or get_llm_client()
@@ -66,10 +64,10 @@ class Agent:
         self.schema_loader = SchemaLoader(database_url)
         self.verbose = verbose
 
-        # Watchlist tool (optional - only if auth provided)
+        # Watchlist tool (optional - only if user authenticated)
         self.watchlist_tool = None
-        if api_base_url and auth_token:
-            self.watchlist_tool = WatchlistTool(api_base_url, auth_token)
+        if user_id:
+            self.watchlist_tool = WatchlistTool(database_url, user_id)
 
         # Conversation history (for multi-turn conversations)
         self.conversation_history: List[Dict[str, str]] = []

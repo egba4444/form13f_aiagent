@@ -4,9 +4,9 @@ Watchlist Tool for AI Agent.
 Enables the agent to add managers or securities to the user's watchlist.
 """
 
-import httpx
 from typing import Optional, Dict, Any
 import logging
+from ..services.watchlist_service import WatchlistService
 
 logger = logging.getLogger(__name__)
 
@@ -14,18 +14,17 @@ logger = logging.getLogger(__name__)
 class WatchlistTool:
     """Tool for managing user's watchlist."""
 
-    def __init__(self, api_base_url: str, auth_token: str):
+    def __init__(self, database_url: str, user_id: str):
         """
         Initialize watchlist tool.
 
         Args:
-            api_base_url: Base URL for the API
-            auth_token: User's authentication token
+            database_url: PostgreSQL connection string
+            user_id: User's UUID
         """
-        self.api_base_url = api_base_url
-        self.auth_headers = {
-            "Authorization": f"Bearer {auth_token}"
-        }
+        self.database_url = database_url
+        self.user_id = user_id
+        self.service = WatchlistService(database_url)
 
     def add_to_watchlist(
         self,
@@ -61,76 +60,13 @@ class WatchlistTool:
                 notes="Tech giant"
             )
         """
-        try:
-            # Validate inputs
-            if item_type not in ["manager", "security"]:
-                return {
-                    "success": False,
-                    "error": "item_type must be 'manager' or 'security'"
-                }
-
-            if item_type == "manager" and not cik:
-                return {
-                    "success": False,
-                    "error": "cik is required when item_type is 'manager'"
-                }
-
-            if item_type == "security" and not cusip:
-                return {
-                    "success": False,
-                    "error": "cusip is required when item_type is 'security'"
-                }
-
-            # Build payload
-            payload = {
-                "item_type": item_type,
-                "notes": notes
-            }
-
-            if item_type == "manager":
-                payload["cik"] = cik
-            else:
-                payload["cusip"] = cusip
-
-            # Make API request
-            with httpx.Client(timeout=30.0) as client:
-                response = client.post(
-                    f"{self.api_base_url}/api/v1/watchlist/items",
-                    headers=self.auth_headers,
-                    json=payload
-                )
-
-                if response.status_code in [200, 201]:
-                    data = response.json()
-                    return {
-                        "success": True,
-                        "item": data,
-                        "message": f"Successfully added {data.get('name', 'item')} to your watchlist"
-                    }
-                elif response.status_code == 409:
-                    return {
-                        "success": False,
-                        "error": "This item is already in your watchlist"
-                    }
-                elif response.status_code == 404:
-                    error_detail = response.json().get("detail", "Not found")
-                    return {
-                        "success": False,
-                        "error": f"Could not find that {item_type}: {error_detail}"
-                    }
-                else:
-                    error_detail = response.json().get("detail", "Unknown error")
-                    return {
-                        "success": False,
-                        "error": f"Failed to add to watchlist: {error_detail}"
-                    }
-
-        except Exception as e:
-            logger.error(f"Error adding to watchlist: {e}", exc_info=True)
-            return {
-                "success": False,
-                "error": f"Error adding to watchlist: {str(e)}"
-            }
+        return self.service.add_item(
+            user_id=self.user_id,
+            item_type=item_type,
+            cik=cik,
+            cusip=cusip,
+            notes=notes
+        )
 
     def get_tool_definition(self) -> Dict[str, Any]:
         """

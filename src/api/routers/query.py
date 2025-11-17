@@ -17,6 +17,7 @@ from ...agent import Agent
 from ...agent.llm_config import LLMClient
 from ..analytics import analytics
 from ..cache import query_cache
+from ...auth.supabase_client import verify_token
 
 logger = logging.getLogger(__name__)
 
@@ -61,26 +62,28 @@ async def query_agent(
     logger.info(f"Query received: {request.query[:100]}...")
     start_time = time.time()
 
-    # Extract auth token if provided
-    auth_token = None
+    # Extract and verify auth token if provided
+    user_id = None
     if authorization:
         parts = authorization.split()
         if len(parts) == 2 and parts[0].lower() == "bearer":
             auth_token = parts[1]
+            # Verify token and extract user_id
+            user_info = verify_token(auth_token)
+            if user_info:
+                user_id = user_info.get("id")
+                logger.info(f"Authenticated user: {user_id}")
+            else:
+                logger.warning("Invalid auth token provided")
 
-    # Get API base URL for watchlist tool
-    # Use the production Railway URL for watchlist API calls
-    api_base_url = os.getenv("WATCHLIST_API_URL") or os.getenv("API_BASE_URL") or "https://form13f-aiagent-production.up.railway.app"
-
-    # Create agent with optional auth for watchlist features
+    # Create agent with optional user_id for watchlist features
     database_url = get_database_url()
     llm_client = LLMClient()
     agent = Agent(
         database_url,
         llm_client=llm_client,
         verbose=False,
-        api_base_url=api_base_url if auth_token else None,
-        auth_token=auth_token
+        user_id=user_id
     )
 
     try:
