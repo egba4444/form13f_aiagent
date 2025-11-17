@@ -144,7 +144,7 @@ async def get_watchlist(
             return WatchlistResponse(
                 id=watchlist_result.id,
                 name=watchlist_result.name,
-                user_id=watchlist_result.user_id,
+                user_id=str(watchlist_result.user_id),  # Convert UUID to string
                 created_at=watchlist_result.created_at,
                 updated_at=watchlist_result.updated_at,
                 items=items
