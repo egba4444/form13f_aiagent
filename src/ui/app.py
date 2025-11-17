@@ -80,28 +80,39 @@ st.markdown("""
         background-color: #e5e7eb;
     }
 
-    /* Fix chat input to bottom */
+    /* Fix chat input to bottom and ensure proper scrolling */
     .stChatFloatingInputContainer {
-        position: fixed !important;
+        position: sticky !important;
         bottom: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
         background-color: white !important;
         border-top: 1px solid #e5e7eb !important;
         padding: 1rem !important;
         z-index: 999 !important;
+        margin-top: auto !important;
     }
 
-    /* Add padding to bottom of chat messages to prevent overlap with fixed input */
-    .stChatMessageContainer {
-        padding-bottom: 100px !important;
+    /* Ensure chat messages container scrolls properly */
+    section.main > div {
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100vh !important;
     }
 
-    /* Ensure main content area has proper padding */
-    section[data-testid="stChatMessageContainer"] {
-        padding-bottom: 120px !important;
+    /* Chat messages should scroll */
+    [data-testid="stVerticalBlock"] {
+        overflow-y: auto !important;
+        flex: 1 !important;
     }
 </style>
+<script>
+    // Auto-scroll to bottom when new messages appear
+    window.addEventListener('load', function() {
+        const observer = new MutationObserver(function() {
+            window.scrollTo(0, document.body.scrollHeight);
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    });
+</script>
 """, unsafe_allow_html=True)
 
 
