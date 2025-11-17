@@ -4,14 +4,17 @@ Query Router
 Natural language query endpoint for the AI agent.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from fastapi.responses import JSONResponse
+from typing import Optional
 import logging
 import time
+import os
 
 from ..schemas import QueryRequest, QueryResponse
-from ..dependencies import get_agent
+from ..dependencies import get_database_url
 from ...agent import Agent
+from ...agent.llm_config import LLMClient
 from ..analytics import analytics
 from ..cache import query_cache
 
@@ -23,7 +26,7 @@ router = APIRouter()
 @router.post("/query", response_model=QueryResponse)
 async def query_agent(
     request: QueryRequest,
-    agent: Agent = Depends(get_agent)
+    authorization: Optional[str] = Header(None)
 ):
     """
     Ask a natural language question about Form 13F data.
@@ -34,10 +37,15 @@ async def query_agent(
     3. Execute on database
     4. Format natural language answer
 
+    **Authentication (Optional):**
+    - If authenticated with Bearer token, enables watchlist features
+    - Allows agent to add managers/securities to your watchlist
+
     **Example questions:**
     - "How many Apple shares did Berkshire Hathaway hold in Q4 2024?"
     - "What are the top 5 managers by portfolio value?"
     - "Who holds the most Tesla stock?"
+    - "Add Berkshire Hathaway to my watchlist" (requires authentication)
 
     **Parameters:**
     - `query`: Your natural language question (3-500 characters)
@@ -52,6 +60,27 @@ async def query_agent(
     """
     logger.info(f"Query received: {request.query[:100]}...")
     start_time = time.time()
+
+    # Extract auth token if provided
+    auth_token = None
+    if authorization:
+        parts = authorization.split()
+        if len(parts) == 2 and parts[0].lower() == "bearer":
+            auth_token = parts[1]
+
+    # Get API base URL for watchlist tool
+    api_base_url = os.getenv("API_BASE_URL", "http://localhost:8000")
+
+    # Create agent with optional auth for watchlist features
+    database_url = get_database_url()
+    llm_client = LLMClient()
+    agent = Agent(
+        database_url,
+        llm_client=llm_client,
+        verbose=False,
+        api_base_url=api_base_url if auth_token else None,
+        auth_token=auth_token
+    )
 
     try:
         # Check cache first

@@ -229,9 +229,14 @@ def query_agent(query: str, conversation_history: Optional[List[Dict[str, str]]]
                 if msg.get("role") in ["user", "assistant"]
             ]
 
+        # Get auth headers if user is authenticated
+        from auth_ui import get_auth_headers
+        headers = get_auth_headers() or {}
+
         response = httpx.post(
             f"{API_BASE_URL}/api/v1/query",
             json=payload,
+            headers=headers,
             timeout=TIMEOUT
         )
         response.raise_for_status()

@@ -15,6 +15,7 @@ from .llm_config import LLMClient, get_llm_client
 from .prompts import get_system_prompt
 from ..tools.sql_tool import SQLQueryTool
 from ..tools.schema_loader import SchemaLoader
+from ..tools.watchlist_tool import WatchlistTool
 
 
 def json_serial(obj):
@@ -45,7 +46,9 @@ class Agent:
         self,
         database_url: str,
         llm_client: Optional[LLMClient] = None,
-        verbose: bool = False
+        verbose: bool = False,
+        api_base_url: Optional[str] = None,
+        auth_token: Optional[str] = None
     ):
         """
         Initialize agent.
@@ -54,12 +57,19 @@ class Agent:
             database_url: PostgreSQL connection string
             llm_client: LLM client (defaults to get_llm_client())
             verbose: Print debug information
+            api_base_url: Base URL for API (required for watchlist tool)
+            auth_token: User authentication token (required for watchlist tool)
         """
         self.database_url = database_url
         self.llm_client = llm_client or get_llm_client()
         self.sql_tool = SQLQueryTool(database_url)
         self.schema_loader = SchemaLoader(database_url)
         self.verbose = verbose
+
+        # Watchlist tool (optional - only if auth provided)
+        self.watchlist_tool = None
+        if api_base_url and auth_token:
+            self.watchlist_tool = WatchlistTool(api_base_url, auth_token)
 
         # Conversation history (for multi-turn conversations)
         self.conversation_history: List[Dict[str, str]] = []
@@ -110,8 +120,12 @@ class Agent:
         # Add current user message
         messages.append({"role": "user", "content": question})
 
-        # Get SQL tool definition
-        tool_def = self.sql_tool.get_tool_definition()
+        # Get tool definitions
+        tools = [self.sql_tool.get_tool_definition()]
+
+        # Add watchlist tool if available
+        if self.watchlist_tool:
+            tools.append(self.watchlist_tool.get_tool_definition())
 
         sql_queries = []
         raw_data = None
@@ -126,7 +140,7 @@ class Agent:
             try:
                 response = self.llm_client.complete(
                     messages=messages,
-                    tools=[tool_def],
+                    tools=tools,
                     tool_choice="auto"
                 )
             except Exception as e:
@@ -232,6 +246,44 @@ class Agent:
                             "name": function_name,
                             "content": json.dumps(result, default=json_serial)
                         })
+
+                    # Execute watchlist add
+                    elif function_name == "add_to_watchlist":
+                        if self.watchlist_tool:
+                            result = self.watchlist_tool.add_to_watchlist(**function_args)
+
+                            if self.verbose:
+                                if result.get("success"):
+                                    print(f"   Result: Successfully added to watchlist")
+                                else:
+                                    print(f"   Result: Failed - {result.get('error')}")
+
+                            # Record tool call
+                            tool_calls_made.append({
+                                "function": function_name,
+                                "arguments": function_args,
+                                "result": result
+                            })
+
+                            # Add tool result to conversation
+                            messages.append({
+                                "role": "tool",
+                                "tool_call_id": tool_call.id,
+                                "name": function_name,
+                                "content": json.dumps(result, default=json_serial)
+                            })
+                        else:
+                            # Watchlist tool not available (no auth)
+                            error_result = {
+                                "success": False,
+                                "error": "Watchlist functionality requires authentication"
+                            }
+                            messages.append({
+                                "role": "tool",
+                                "tool_call_id": tool_call.id,
+                                "name": function_name,
+                                "content": json.dumps(error_result)
+                            })
 
                 # Continue conversation with tool results
                 continue
