@@ -322,3 +322,67 @@ class WatchlistResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ============================================================================
+# RAG / Semantic Search Models
+# ============================================================================
+
+class SemanticSearchRequest(BaseModel):
+    """Request for semantic search over filing text"""
+
+    query: str = Field(
+        ...,
+        min_length=3,
+        max_length=500,
+        description="Search query (semantic, not keyword-based)",
+        examples=["What investment strategies are mentioned?"]
+    )
+    top_k: int = Field(
+        default=5,
+        ge=1,
+        le=20,
+        description="Number of results to return (1-20)"
+    )
+    filter_accession: Optional[str] = Field(
+        None,
+        description="Filter to specific filing accession number"
+    )
+    filter_content_type: Optional[str] = Field(
+        None,
+        description="Filter to specific content type (e.g., 'explanatory_notes', 'cover_page')"
+    )
+
+
+class SemanticSearchResult(BaseModel):
+    """Individual search result"""
+
+    text: str = Field(..., description="Matched text content")
+    accession_number: str = Field(..., description="Filing accession number")
+    content_type: str = Field(..., description="Section type (e.g., 'explanatory_notes')")
+    relevance_score: float = Field(..., description="Relevance score (0.0-1.0)")
+
+
+class SemanticSearchResponse(BaseModel):
+    """Response from semantic search"""
+
+    success: bool = Field(..., description="Whether search succeeded")
+    results: List[SemanticSearchResult] = Field(..., description="Search results")
+    results_count: int = Field(..., description="Number of results returned")
+    query: str = Field(..., description="Original query")
+
+
+class FilingTextResponse(BaseModel):
+    """Text content for a specific filing"""
+
+    success: bool = Field(..., description="Whether retrieval succeeded")
+    accession_number: str = Field(..., description="Filing accession number")
+    sections: Dict[str, str] = Field(
+        ...,
+        description="Text sections keyed by content type"
+    )
+    sections_found: List[str] = Field(
+        ...,
+        description="List of available content types in this filing"
+    )
+    total_sections: int = Field(..., description="Number of sections found")

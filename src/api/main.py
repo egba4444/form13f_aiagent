@@ -410,13 +410,16 @@ async def clear_cache():
 
 
 # Import routers
-from .routers import query, managers, filings, holdings, analytics_endpoints, watchlist, auth
+from .routers import query, managers, filings, holdings, analytics_endpoints, watchlist, auth, rag
 
 # Authentication router
 app.include_router(auth.router, prefix="/api/v1", tags=["Authentication"])
 
 # Natural language query router
 app.include_router(query.router, prefix="/api/v1", tags=["Query"])
+
+# RAG / Semantic search router
+app.include_router(rag.router, prefix="/api/v1", tags=["Semantic Search"])
 
 # REST data access routers
 app.include_router(managers.router, prefix="/api/v1", tags=["Managers"])

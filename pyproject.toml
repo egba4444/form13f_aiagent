@@ -36,6 +36,11 @@ dependencies = [
     # AI/LLM
     "litellm>=1.53.0",
 
+    # Phase 8B - RAG System
+    "qdrant-client>=1.7.0",
+    "sentence-transformers>=2.2.0",
+    "torch>=2.1.0",
+
     # API
     "fastapi>=0.109.0",
     "uvicorn[standard]>=0.27.0",

@@ -13,28 +13,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-# Import auth UI components
-try:
-    from auth_ui import require_auth, show_logout_button, get_auth_headers
-    from watchlist_ui import show_watchlist_sidebar
-    from rag_ui import render_semantic_search_tab, render_filing_text_explorer_tab
-except ImportError:
-    # Try alternate import path for different deployment environments
-    import sys
-    from pathlib import Path
-    sys.path.insert(0, str(Path(__file__).parent))
-    from auth_ui import require_auth, show_logout_button, get_auth_headers
-    from watchlist_ui import show_watchlist_sidebar
-    from rag_ui import render_semantic_search_tab, render_filing_text_explorer_tab
-
 # Configuration
-# Use Railway API in production, local API in development
 API_BASE_URL = os.getenv("API_BASE_URL", "https://form13f-aiagent-production.up.railway.app")
 TIMEOUT = 120.0  # 2 minutes timeout for agent queries
-
-# For local development, override to use localhost
-if os.path.exists(".env"):
-    API_BASE_URL = "http://localhost:8000"
 
 # Page configuration
 st.set_page_config(
@@ -43,13 +24,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-# Require authentication
-if not require_auth(API_BASE_URL):
-    st.stop()  # Stop execution if not authenticated
-
-# Show logout button
-show_logout_button()
 
 # Custom CSS
 st.markdown("""
@@ -105,40 +79,7 @@ st.markdown("""
     .example-query:hover {
         background-color: #e5e7eb;
     }
-
-    /* Fix chat input to bottom and ensure proper scrolling */
-    .stChatFloatingInputContainer {
-        position: sticky !important;
-        bottom: 0 !important;
-        background-color: white !important;
-        border-top: 1px solid #e5e7eb !important;
-        padding: 1rem !important;
-        z-index: 999 !important;
-        margin-top: auto !important;
-    }
-
-    /* Ensure chat messages container scrolls properly */
-    section.main > div {
-        display: flex !important;
-        flex-direction: column !important;
-        height: 100vh !important;
-    }
-
-    /* Chat messages should scroll */
-    [data-testid="stVerticalBlock"] {
-        overflow-y: auto !important;
-        flex: 1 !important;
-    }
 </style>
-<script>
-    // Auto-scroll to bottom when new messages appear
-    window.addEventListener('load', function() {
-        const observer = new MutationObserver(function() {
-            window.scrollTo(0, document.body.scrollHeight);
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
-    });
-</script>
 """, unsafe_allow_html=True)
 
 
@@ -217,28 +158,12 @@ def fetch_top_movers(top_n: int = 10) -> Optional[Dict[str, Any]]:
         return None
 
 
-def query_agent(query: str, conversation_history: Optional[List[Dict[str, str]]] = None) -> dict:
-    """Send query to the AI agent with optional conversation history"""
+def query_agent(query: str) -> dict:
+    """Send query to the AI agent"""
     try:
-        payload = {"query": query}
-
-        # Add conversation history if provided
-        if conversation_history:
-            # Convert to API format (role + content only, exclude other fields)
-            payload["conversation_history"] = [
-                {"role": msg["role"], "content": msg["content"]}
-                for msg in conversation_history
-                if msg.get("role") in ["user", "assistant"]
-            ]
-
-        # Get auth headers if user is authenticated
-        from auth_ui import get_auth_headers
-        headers = get_auth_headers() or {}
-
         response = httpx.post(
             f"{API_BASE_URL}/api/v1/query",
-            json=payload,
-            headers=headers,
+            json={"query": query},
             timeout=TIMEOUT
         )
         response.raise_for_status()
@@ -435,12 +360,7 @@ def render_chat_tab():
         # Get AI response
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
-                # Pass conversation history (exclude the welcome message and current prompt)
-                history = [
-                    msg for msg in st.session_state.messages[:-1]  # Exclude current user message
-                    if msg.get("role") in ["user", "assistant"]
-                ]
-                response = query_agent(prompt, conversation_history=history)
+                response = query_agent(prompt)
 
             if response.get("success"):
                 answer = response.get("answer", "I found the results for your query.")
@@ -508,15 +428,6 @@ def render_portfolio_explorer_tab():
             portfolio_data = fetch_portfolio_composition(cik, top_n)
 
             if portfolio_data:
-                # Add to watchlist button
-                auth_headers = get_auth_headers()
-                if auth_headers:
-                    if st.button(f"⭐ Add {selected_manager.split(' (CIK:')[0]} to Watchlist", key=f"add_mgr_{cik}"):
-                        from watchlist_ui import add_to_watchlist
-                        if add_to_watchlist(API_BASE_URL, auth_headers, "manager", cik=cik):
-                            st.success(f"✅ Added {selected_manager.split(' (CIK:')[0]} to watchlist!")
-                            st.rerun()
-
                 # Portfolio summary
                 col_a, col_b, col_c = st.columns(3)
                 with col_a:
@@ -575,15 +486,6 @@ def render_security_analysis_tab():
         if security_data:
             # Security summary
             st.markdown(f"### {security_data['title_of_class']}")
-
-            # Add to watchlist button
-            auth_headers = get_auth_headers()
-            if auth_headers:
-                if st.button(f"⭐ Add {security_data['title_of_class']} to Watchlist", key=f"add_sec_{cusip_input}"):
-                    from watchlist_ui import add_to_watchlist
-                    if add_to_watchlist(API_BASE_URL, auth_headers, "security", cusip=cusip_input):
-                        st.success(f"✅ Added {security_data['title_of_class']} to watchlist!")
-                        st.rerun()
 
             col_a, col_b, col_c, col_d = st.columns(4)
             with col_a:
@@ -747,28 +649,19 @@ def main():
                 total_value_billions = stats['total_value'] / 1_000_000_000
                 st.success(f"**Total Value:** ${total_value_billions:.2f}B")
 
-        # Show watchlist in sidebar
-        auth_headers = get_auth_headers()
-        if auth_headers:
-            show_watchlist_sidebar(API_BASE_URL, auth_headers)
-
         st.markdown("---")
         st.markdown("**Quick Navigation:**")
         st.markdown("- 💬 **Chat**: Natural language queries")
         st.markdown("- 📈 **Portfolio Explorer**: Analyze manager portfolios")
         st.markdown("- 🔍 **Security Analysis**: Institutional ownership")
         st.markdown("- 🚀 **Top Movers**: Position changes")
-        st.markdown("- 🔎 **Semantic Search**: AI-powered text search")
-        st.markdown("- 📄 **Filing Explorer**: View filing text content")
 
     # Main tabs
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    tab1, tab2, tab3, tab4 = st.tabs([
         "💬 Chat",
         "📈 Portfolio Explorer",
         "🔍 Security Analysis",
-        "🚀 Top Movers",
-        "🔎 Semantic Search",
-        "📄 Filing Explorer"
+        "🚀 Top Movers"
     ])
 
     with tab1:
@@ -782,12 +675,6 @@ def main():
 
     with tab4:
         render_top_movers_tab()
-
-    with tab5:
-        render_semantic_search_tab(API_BASE_URL)
-
-    with tab6:
-        render_filing_text_explorer_tab(API_BASE_URL)
 
 
 if __name__ == "__main__":

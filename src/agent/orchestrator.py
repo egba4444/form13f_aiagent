@@ -16,6 +16,7 @@ from .prompts import get_system_prompt
 from ..tools.sql_tool import SQLQueryTool
 from ..tools.schema_loader import SchemaLoader
 from ..tools.watchlist_tool import WatchlistTool
+from ..tools.rag_tool import RAGRetrievalTool
 
 
 def json_serial(obj):
@@ -63,6 +64,15 @@ class Agent:
         self.sql_tool = SQLQueryTool(database_url)
         self.schema_loader = SchemaLoader(database_url)
         self.verbose = verbose
+
+        # RAG tool for semantic search over filing text
+        try:
+            self.rag_tool = RAGRetrievalTool()
+        except Exception as e:
+            # RAG tool is optional - if Qdrant isn't available, agent still works
+            if self.verbose:
+                print(f"RAG tool unavailable: {e}")
+            self.rag_tool = None
 
         # Watchlist tool (optional - only if user authenticated)
         self.watchlist_tool = None
@@ -121,6 +131,10 @@ class Agent:
         # Get tool definitions
         tools = [self.sql_tool.get_tool_definition()]
 
+        # Add RAG tool if available
+        if self.rag_tool:
+            tools.append(self.rag_tool.get_tool_definition())
+
         # Add watchlist tool if available
         if self.watchlist_tool:
             tools.append(self.watchlist_tool.get_tool_definition())
@@ -132,7 +146,7 @@ class Agent:
         # Conversation loop (handle tool calls)
         for turn in range(max_turns):
             if self.verbose:
-                print(f"\n🔄 Turn {turn + 1}/{max_turns}")
+                print(f"\n[TURN] Turn {turn + 1}/{max_turns}")
 
             # Call LLM
             try:
@@ -187,7 +201,7 @@ class Agent:
             # Check if LLM wants to use a tool
             if hasattr(assistant_message, 'tool_calls') and assistant_message.tool_calls:
                 if self.verbose:
-                    print(f"🔧 LLM requesting tool use")
+                    print(f"[TOOL] LLM requesting tool use")
 
                 # Add assistant message to conversation
                 messages.append({
@@ -244,6 +258,44 @@ class Agent:
                             "name": function_name,
                             "content": json.dumps(result, default=json_serial)
                         })
+
+                    # Execute RAG semantic search
+                    elif function_name == "search_filing_text":
+                        if self.rag_tool:
+                            result = self.rag_tool.execute(**function_args)
+
+                            if self.verbose:
+                                if result.get("success"):
+                                    print(f"   Result: Found {result.get('results_count', 0)} results")
+                                else:
+                                    print(f"   Result: Failed - {result.get('error')}")
+
+                            # Record tool call
+                            tool_calls_made.append({
+                                "function": function_name,
+                                "arguments": function_args,
+                                "result": result
+                            })
+
+                            # Add tool result to conversation
+                            messages.append({
+                                "role": "tool",
+                                "tool_call_id": tool_call.id,
+                                "name": function_name,
+                                "content": json.dumps(result, default=json_serial)
+                            })
+                        else:
+                            # RAG tool not available (Qdrant not running)
+                            error_result = {
+                                "success": False,
+                                "error": "Semantic search is currently unavailable"
+                            }
+                            messages.append({
+                                "role": "tool",
+                                "tool_call_id": tool_call.id,
+                                "name": function_name,
+                                "content": json.dumps(error_result)
+                            })
 
                     # Execute watchlist add
                     elif function_name == "add_to_watchlist":
@@ -398,7 +450,7 @@ if __name__ == "__main__":
             print(f"📝 SQL Generated:\n{result['sql_query']}\n")
 
         print(f"⏱️  Execution time: {result['execution_time_ms']}ms")
-        print(f"🔧 Tool calls: {result['tool_calls']}")
-        print(f"🔄 Turns: {result['turns']}")
+        print(f"[TOOL] Tool calls: {result['tool_calls']}")
+        print(f"[TURN] Turns: {result['turns']}")
     else:
         print(f"❌ Error: {result.get('error')}")
