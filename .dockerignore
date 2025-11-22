@@ -40,10 +40,14 @@ htmlcov/
 tests/
 
 # Data (will be mounted as volumes)
-data/raw/*
-data/processed/*
-data/cache/*
+data/
 logs/
+*.csv
+*.tsv
+*.xml
+nul
+scripts/
+.claude/
 
 # Environment files
 .env

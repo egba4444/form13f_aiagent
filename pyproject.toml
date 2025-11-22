@@ -36,10 +36,10 @@ dependencies = [
     # AI/LLM
     "litellm>=1.53.0",
 
-    # Phase 8B - RAG System
+    # Phase 8B - RAG System (CPU-only for smaller image size)
     "qdrant-client>=1.7.0",
     "sentence-transformers>=2.2.0",
-    "torch>=2.1.0",
+    # Note: torch will be installed as dependency of sentence-transformers
 
     # API
     "fastapi>=0.109.0",

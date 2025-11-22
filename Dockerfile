@@ -21,7 +21,15 @@ COPY uv.lock ./
 COPY src/ ./src/
 
 # Install Python dependencies using uv sync (much faster than pip)
+# Use CPU-only torch to reduce image size
 RUN uv sync --frozen --no-dev
+
+# Clean up unnecessary files to reduce image size
+RUN find /app/.venv -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true && \
+    find /app/.venv -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true && \
+    find /app/.venv -name "*.pyc" -delete && \
+    find /app/.venv -name "*.pyo" -delete && \
+    find /app/.venv -type d -name "*.dist-info" -exec sh -c 'rm -rf "$1"/{RECORD,INSTALLER,WHEEL}' _ {} \; 2>/dev/null || true
 
 # Stage 2: Runtime
 FROM python:3.11-slim
