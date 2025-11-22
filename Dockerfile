@@ -24,14 +24,9 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 COPY pyproject.toml ./
 COPY uv.lock ./
 
-# Cache buster for src - forces rebuild of this layer when changed
-ARG CACHE_BUST_SRC=v4
-RUN echo "Source cache bust: ${CACHE_BUST_SRC}"
-
-COPY src/ ./src/
-
 # Install Python dependencies using uv sync (much faster than pip)
 # Use CPU-only torch to reduce image size
+# NOTE: We don't need src/ for dependency installation
 RUN uv sync --frozen --no-dev
 
 # Clean up unnecessary files to reduce image size
