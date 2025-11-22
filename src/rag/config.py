@@ -22,6 +22,10 @@ class RAGConfig(BaseSettings):
         default="http://localhost:6333",
         description="Qdrant server URL"
     )
+    qdrant_api_key: Optional[str] = Field(
+        default=None,
+        description="Qdrant API key (for cloud deployments)"
+    )
     qdrant_collection_name: str = Field(
         default="filing_text_embeddings",
         description="Name of the Qdrant collection"
@@ -80,4 +84,5 @@ def get_rag_config() -> RAGConfig:
     """Get RAG configuration from environment."""
     # Override qdrant_url from QDRANT_URL if available
     qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
-    return RAGConfig(qdrant_url=qdrant_url)
+    qdrant_api_key = os.getenv("QDRANT_API_KEY")
+    return RAGConfig(qdrant_url=qdrant_url, qdrant_api_key=qdrant_api_key)

@@ -46,7 +46,10 @@ class VectorStore:
         self.dimension = config.embedding_dimension
 
         logger.info(f"Connecting to Qdrant at {config.qdrant_url}")
-        self.client = QdrantClient(url=config.qdrant_url)
+        self.client = QdrantClient(
+            url=config.qdrant_url,
+            api_key=config.qdrant_api_key
+        )
 
         logger.info(f"Using collection: {self.collection_name}")
 
