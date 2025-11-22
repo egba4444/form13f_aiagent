@@ -21,17 +21,16 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 COPY pyproject.toml ./
 COPY uv.lock ./
 
-# Install Python dependencies FIRST (before copying src/)
-# This preserves caching for dependencies
-RUN uv sync --frozen --no-dev
-
 # FORCE CACHE INVALIDATION - timestamp changes every build
 ARG CACHEBUST_V3=1
 RUN echo "FORCE REBUILD v3: $(date +%s)" > /tmp/cachebust
 
-# NOW copy application code - this layer will ALWAYS rebuild
+# Copy application code (required for editable install)
 COPY src/ ./src/
 COPY schema/ ./schema/
+
+# Install Python dependencies (must be AFTER copying src/ for editable install)
+RUN uv sync --frozen --no-dev
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && \
