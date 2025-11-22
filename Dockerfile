@@ -1,4 +1,5 @@
 # Multi-stage Dockerfile for Form 13F AI Agent
+# Updated: 2025-11-22 - Added Qdrant API key authentication support
 # Stage 1: Builder
 FROM python:3.11-slim as builder
 
