@@ -24,9 +24,11 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 COPY pyproject.toml ./
 COPY uv.lock ./
 
+# Cache buster - changes with each commit to force rebuilding src/
+ARG GIT_COMMIT_SHA=unknown
+RUN echo "Building from commit: ${GIT_COMMIT_SHA}"
+
 # Copy src/ for editable install (uv sync needs it)
-# Use current timestamp to bust cache on every build
-RUN date > /tmp/src_cache_bust
 COPY src/ ./src/
 
 # Install Python dependencies using uv sync (much faster than pip)
