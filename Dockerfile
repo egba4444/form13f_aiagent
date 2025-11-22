@@ -64,4 +64,4 @@ USER appuser
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Default command - uses $PORT env var from Railway (defaults to 8000)
-CMD uvicorn src.api.main:app --host 0.0.0.0 --port ${PORT:-8000}
+CMD ["sh", "-c", "uvicorn src.api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
