@@ -1,9 +1,13 @@
 # Multi-stage Dockerfile for Form 13F AI Agent
 # Updated: 2025-11-22 - Added Qdrant API key authentication support
+# Build version: 2.0
 # Stage 1: Builder
 FROM python:3.11-slim as builder
 
 WORKDIR /app
+
+# Force rebuild timestamp
+RUN echo "Build timestamp: $(date)" > /tmp/build_timestamp
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
