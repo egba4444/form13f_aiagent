@@ -24,9 +24,13 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 COPY pyproject.toml ./
 COPY uv.lock ./
 
+# Copy src/ for editable install (uv sync needs it)
+# Use current timestamp to bust cache on every build
+RUN date > /tmp/src_cache_bust
+COPY src/ ./src/
+
 # Install Python dependencies using uv sync (much faster than pip)
 # Use CPU-only torch to reduce image size
-# NOTE: We don't need src/ for dependency installation
 RUN uv sync --frozen --no-dev
 
 # Clean up unnecessary files to reduce image size
