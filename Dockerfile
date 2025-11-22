@@ -50,6 +50,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy uv-managed virtual environment from builder
 COPY --from=builder /app/.venv /app/.venv
 
+# Cache buster - forces rebuild of this layer
+ARG CACHE_BUST=v2
+RUN echo "Cache bust: ${CACHE_BUST}"
+
 # Copy application code
 COPY src/ ./src/
 COPY schema/ ./schema/
