@@ -8,14 +8,13 @@ Usage:
 import os
 import sys
 from pathlib import Path
-from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-load_dotenv()
+# Note: dotenv not needed in production (Railway provides env vars directly)
 
 
 def apply_migration(sql_file: Path):
