@@ -46,6 +46,7 @@ class VectorStore:
         self.dimension = config.embedding_dimension
 
         logger.info(f"Connecting to Qdrant at {config.qdrant_url}")
+        logger.info(f"Qdrant API key configured: {bool(config.qdrant_api_key)}")
         self.client = QdrantClient(
             url=config.qdrant_url,
             api_key=config.qdrant_api_key

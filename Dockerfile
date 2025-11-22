@@ -25,7 +25,7 @@ COPY pyproject.toml ./
 COPY uv.lock ./
 
 # Cache buster for src - forces rebuild of this layer when changed
-ARG CACHE_BUST_SRC=v3
+ARG CACHE_BUST_SRC=v4
 RUN echo "Source cache bust: ${CACHE_BUST_SRC}"
 
 COPY src/ ./src/
@@ -56,7 +56,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /app/.venv /app/.venv
 
 # Cache buster for application code - forces rebuild when source changes
-ARG CACHE_BUST_RUNTIME=v3
+ARG CACHE_BUST_RUNTIME=v4
 RUN echo "Runtime cache bust: ${CACHE_BUST_RUNTIME}"
 
 # Copy application code
