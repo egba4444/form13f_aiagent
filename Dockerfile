@@ -23,6 +23,11 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 # Copy dependency files
 COPY pyproject.toml ./
 COPY uv.lock ./
+
+# Cache buster for src - forces rebuild of this layer when changed
+ARG CACHE_BUST_SRC=v3
+RUN echo "Source cache bust: ${CACHE_BUST_SRC}"
+
 COPY src/ ./src/
 
 # Install Python dependencies using uv sync (much faster than pip)
@@ -50,9 +55,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy uv-managed virtual environment from builder
 COPY --from=builder /app/.venv /app/.venv
 
-# Cache buster - forces rebuild of this layer
-ARG CACHE_BUST=v2
-RUN echo "Cache bust: ${CACHE_BUST}"
+# Cache buster for application code - forces rebuild when source changes
+ARG CACHE_BUST_RUNTIME=v3
+RUN echo "Runtime cache bust: ${CACHE_BUST_RUNTIME}"
 
 # Copy application code
 COPY src/ ./src/
