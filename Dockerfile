@@ -1,19 +1,16 @@
-# Multi-stage Dockerfile for Form 13F AI Agent
-# Updated: 2025-11-22 - Added Qdrant API key authentication support
-# Build version: 2.0
-# Stage 1: Builder
-FROM python:3.11-slim as builder
+# Single-stage Dockerfile for Form 13F AI Agent
+# Updated: 2025-11-22 - Removed multi-stage to force cache invalidation
+# Build version: 3.0 - EMERGENCY CACHE BUST
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Force rebuild timestamp
-RUN echo "Build timestamp: $(date)" > /tmp/build_timestamp
-
-# Install build dependencies
+# Install ALL dependencies (build + runtime) in one shot
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
     libpq-dev \
+    libpq5 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -24,43 +21,15 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 COPY pyproject.toml ./
 COPY uv.lock ./
 
-# Cache buster - changes with each commit to force rebuilding src/
-ARG GIT_COMMIT_SHA=unknown
-RUN echo "Building from commit: ${GIT_COMMIT_SHA}"
-
-# Copy src/ for editable install (uv sync needs it)
-COPY src/ ./src/
-
-# Install Python dependencies using uv sync (much faster than pip)
-# Use CPU-only torch to reduce image size
+# Install Python dependencies FIRST (before copying src/)
+# This preserves caching for dependencies
 RUN uv sync --frozen --no-dev
 
-# Clean up unnecessary files to reduce image size
-RUN find /app/.venv -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true && \
-    find /app/.venv -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true && \
-    find /app/.venv -name "*.pyc" -delete && \
-    find /app/.venv -name "*.pyo" -delete && \
-    find /app/.venv -type d -name "*.dist-info" -exec sh -c 'rm -rf "$1"/{RECORD,INSTALLER,WHEEL}' _ {} \; 2>/dev/null || true
+# FORCE CACHE INVALIDATION - timestamp changes every build
+ARG CACHEBUST_V3=1
+RUN echo "FORCE REBUILD v3: $(date +%s)" > /tmp/cachebust
 
-# Stage 2: Runtime
-FROM python:3.11-slim
-
-WORKDIR /app
-
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy uv-managed virtual environment from builder
-COPY --from=builder /app/.venv /app/.venv
-
-# Cache buster for application code - forces rebuild when source changes
-ARG CACHE_BUST_RUNTIME=v4
-RUN echo "Runtime cache bust: ${CACHE_BUST_RUNTIME}"
-
-# Copy application code
+# NOW copy application code - this layer will ALWAYS rebuild
 COPY src/ ./src/
 COPY schema/ ./schema/
 
@@ -74,11 +43,11 @@ RUN mkdir -p data/raw data/processed data/cache && \
 
 USER appuser
 
-# Activate virtual environment and run uvicorn
+# Activate virtual environment
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Expose port
 EXPOSE 8080
 
-# Default command - Railway will automatically set PORT, but we default to 8080
+# Default command
 CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8080"]
