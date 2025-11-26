@@ -87,7 +87,25 @@ class VectorStore:
             )
         )
 
-        logger.info(f"Collection created successfully")
+        # Create payload indexes for filtering
+        logger.info("Creating payload indexes for filtering...")
+        from qdrant_client.models import PayloadSchemaType
+
+        # Index for accession_number (used for filtering by filing)
+        self.client.create_payload_index(
+            collection_name=self.collection_name,
+            field_name="accession_number",
+            field_schema=PayloadSchemaType.KEYWORD
+        )
+
+        # Index for content_type (used for filtering by section type)
+        self.client.create_payload_index(
+            collection_name=self.collection_name,
+            field_name="content_type",
+            field_schema=PayloadSchemaType.KEYWORD
+        )
+
+        logger.info(f"Collection created successfully with payload indexes")
         return True
 
     def delete_collection(self) -> bool:
