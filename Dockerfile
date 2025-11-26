@@ -1,6 +1,6 @@
 # Single-stage Dockerfile for Form 13F AI Agent
-# Updated: 2025-11-22 - Removed multi-stage to force cache invalidation
-# Build version: 3.0 - EMERGENCY CACHE BUST
+# Updated: 2025-11-26 - RAG embeddings uploaded, forcing restart
+# Build version: 4.0 - RAG READY
 FROM python:3.11-slim
 
 WORKDIR /app
