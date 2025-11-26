@@ -82,7 +82,16 @@ class RAGConfig(BaseSettings):
 
 def get_rag_config() -> RAGConfig:
     """Get RAG configuration from environment."""
+    import logging
+    logger = logging.getLogger(__name__)
+
     # Override qdrant_url from QDRANT_URL if available
     qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
     qdrant_api_key = os.getenv("QDRANT_API_KEY")
+
+    # Debug logging
+    logger.info(f"Environment QDRANT_URL: {qdrant_url}")
+    logger.info(f"Environment QDRANT_API_KEY present: {bool(qdrant_api_key)}")
+    logger.info(f"Environment QDRANT_API_KEY length: {len(qdrant_api_key) if qdrant_api_key else 0}")
+
     return RAGConfig(qdrant_url=qdrant_url, qdrant_api_key=qdrant_api_key)
