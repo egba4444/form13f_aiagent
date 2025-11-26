@@ -65,8 +65,8 @@ class RAGConfig(BaseSettings):
         description="Number of similar chunks to retrieve"
     )
     score_threshold: float = Field(
-        default=0.5,
-        description="Minimum similarity score threshold"
+        default=0.0,
+        description="Minimum similarity score threshold (0.0 = no threshold)"
     )
 
     # Performance
