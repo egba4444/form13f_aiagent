@@ -11,6 +11,7 @@ Features:
 """
 
 import logging
+import uuid
 from typing import List, Dict, Optional
 from dataclasses import asdict
 
@@ -150,9 +151,9 @@ class VectorStore:
 
         # Prepare points for upload
         points = []
-        for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
+        for chunk, embedding in zip(chunks, embeddings):
             point = PointStruct(
-                id=i,  # Will be auto-incremented by Qdrant
+                id=str(uuid.uuid4()),  # Use UUID to avoid ID collisions
                 vector=embedding,
                 payload={
                     "text": chunk.text,

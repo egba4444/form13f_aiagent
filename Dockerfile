@@ -1,6 +1,6 @@
 # Single-stage Dockerfile for Form 13F AI Agent
-# Updated: 2025-11-26 - RAG embeddings uploaded, forcing restart
-# Build version: 4.0 - RAG READY
+# Updated: 2025-11-26 - 8,765 embeddings with UUID fix uploaded
+# Build version: 5.0 - RAG FULLY OPERATIONAL
 FROM python:3.11-slim
 
 WORKDIR /app
