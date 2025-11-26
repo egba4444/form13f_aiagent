@@ -76,7 +76,7 @@ class RAGConfig(BaseSettings):
     )
 
     class Config:
-        env_prefix = "RAG_"
+        env_prefix = ""  # No prefix - read QDRANT_URL and QDRANT_API_KEY directly
         case_sensitive = False
 
 
@@ -85,13 +85,12 @@ def get_rag_config() -> RAGConfig:
     import logging
     logger = logging.getLogger(__name__)
 
-    # Override qdrant_url from QDRANT_URL if available
-    qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
-    qdrant_api_key = os.getenv("QDRANT_API_KEY")
+    # Let Pydantic automatically load from environment variables
+    config = RAGConfig()
 
     # Debug logging
-    logger.info(f"Environment QDRANT_URL: {qdrant_url}")
-    logger.info(f"Environment QDRANT_API_KEY present: {bool(qdrant_api_key)}")
-    logger.info(f"Environment QDRANT_API_KEY length: {len(qdrant_api_key) if qdrant_api_key else 0}")
+    logger.info(f"Config QDRANT_URL: {config.qdrant_url}")
+    logger.info(f"Config QDRANT_API_KEY present: {bool(config.qdrant_api_key)}")
+    logger.info(f"Config QDRANT_API_KEY length: {len(config.qdrant_api_key) if config.qdrant_api_key else 0}")
 
-    return RAGConfig(qdrant_url=qdrant_url, qdrant_api_key=qdrant_api_key)
+    return config
