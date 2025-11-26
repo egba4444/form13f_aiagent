@@ -85,6 +85,11 @@ def get_rag_config() -> RAGConfig:
     import logging
     logger = logging.getLogger(__name__)
 
+    # DEBUG: Print all environment variables containing "QDRANT"
+    import os as debug_os
+    qdrant_vars = {k: v[:50] + "..." if len(v) > 50 else v for k, v in debug_os.environ.items() if "QDRANT" in k.upper()}
+    logger.info(f"All QDRANT env vars: {qdrant_vars}")
+
     # Let Pydantic automatically load from environment variables
     config = RAGConfig()
 
