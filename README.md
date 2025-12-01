@@ -67,7 +67,8 @@ Claude Generates Natural Language Answer
 | **Phase 4** | Agent Orchestration | 2-3 days | ✅ Complete |
 | **Phase 5** | FastAPI Backend + Analytics | 2-3 days | ✅ Complete |
 | **Phase 6** | Streamlit UI + Visualizations | 2-3 days | ✅ Complete |
-| **Phase 7** | Optional: RAG for Commentary | 3-4 days | Future |
+| **Phase 7** | Authentication & Security | 2-3 days | ✅ Complete |
+| **Phase 8** | RAG/Semantic Search | 3-4 days | ✅ Complete |
 
 **Timeline**: 2-3 weeks to working prototype with SQL queries
 
@@ -349,11 +350,20 @@ FastAPI provides dedicated analytics endpoints:
 
 See API docs at `/docs` for full endpoint documentation.
 
-### 7. Future: RAG for Commentary (Phase 7)
-When added, the system will:
-- Store explanatory notes and commentary in vector database
-- Use RAG for unstructured text queries
-- Agent routes between SQL (for data) and RAG (for commentary)
+### 7. RAG/Semantic Search (Phase 8 - Completed)
+The system includes semantic search over Form 13F filing text:
+- Vector database (Qdrant) stores filing text embeddings
+- AI-powered semantic search finds relevant sections
+- Search manager info, amendments, regulatory disclosures
+
+**Important Limitation:**
+Form 13F filings are regulatory documents that report holdings. They typically **do NOT contain**:
+- Investment strategies or philosophies
+- Investment theses or market commentary
+- Future investment plans
+
+Best used for: manager contact info, amendment explanations, fund structure disclosures.
+For actual investment analysis, use the SQL query tools instead.
 
 ## 📊 Example Usage
 
@@ -428,12 +438,7 @@ pytest tests/unit/test_sql_tool.py -v
 
 ## 🤝 Future Enhancements
 
-### Phase 7: RAG for Commentary
-- Vector database (Qdrant) for explanatory notes
-- Hybrid routing: SQL for data, RAG for text
-- Answers questions like "What did BlackRock say about derivatives?"
-
-### Phase 8: Advanced Features
+### Phase 9: Advanced Features
 - Real-time data updates (SEC RSS feed)
 - Multi-manager comparisons
 - Time-series analysis
@@ -450,6 +455,6 @@ For questions or feedback, please open an issue.
 
 ---
 
-**Status**: ✅ Phases 1-6 Complete - Production Ready
-**Architecture**: SQL-First (RAG optional in Phase 7)
+**Status**: ✅ Phases 1-8 Complete - Production Ready
+**Architecture**: SQL-First + RAG Semantic Search
 **Live Demo**: [Streamlit Cloud](https://your-app.streamlit.app) | [API](https://your-app.up.railway.app)

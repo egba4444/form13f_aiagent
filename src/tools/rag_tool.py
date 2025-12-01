@@ -65,28 +65,33 @@ class RAGRetrievalTool:
                 "name": "search_filing_text",
                 "description": """Search through Form 13F filing text content using semantic search.
 
-Use this tool to find:
-- Investment strategies and methodologies
-- Explanatory notes about portfolio changes
-- Reasons for amendments
-- Manager commentary and disclosures
-- Qualitative information not in structured data
+IMPORTANT: Form 13F filings are regulatory documents that report holdings. They typically
+do NOT contain detailed investment strategies, philosophies, or market commentary.
 
-The search understands meaning, not just keywords. For example:
-- "Why did the manager reduce their position?" will find relevant explanatory text
-- "Investment philosophy" will find strategy descriptions
-- "ESG approach" will find sustainability-related content
+Best use cases:
+- Manager contact information and addresses
+- Amendment notices and explanations
+- Regulatory disclosures about fund structure
+- Information about relying advisers or third-party management
+- Filing corrections or updates
 
-Returns the most relevant text excerpts with their source filings.
+Limited/No data for:
+- Investment strategies or philosophies (not in 13F filings)
+- Investment theses or rationales (not required by SEC)
+- Market commentary or analysis (not in 13F filings)
+- Future investment plans (not disclosed in 13F)
+
+The search understands meaning, not just keywords. Returns the most relevant text excerpts
+with their source filings.
 
 Content types available:
-- cover_page_info: Filing manager details and basic info
-- explanatory_notes: Investment strategy and methodology explanations
+- cover_page_info: Filing manager contact details and basic info
+- explanatory_notes: Regulatory disclosures, fund structure notes, amendments
 - amendment_info: Reasons for filing amendments
 - other_documents: Additional exhibits and disclosures
 
-Note: This searches text content only. For structured holdings data (positions, values, shares),
-use the query_database tool instead.
+For analyzing holdings data (positions, values, shares, portfolio composition),
+use the query_database tool instead - that's where the actual investment data is.
 """,
                 "parameters": {
                     "type": "object",

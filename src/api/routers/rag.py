@@ -36,23 +36,42 @@ async def semantic_search(request: SemanticSearchRequest):
     This endpoint uses AI-powered semantic search to find relevant sections
     in Form 13F filings based on meaning, not just keywords.
 
-    **Use this for:**
-    - Investment strategies and methodologies
-    - Explanatory notes about portfolio changes
-    - Manager commentary and disclosures
-    - Finding specific information across all filings
+    **IMPORTANT LIMITATIONS:**
+    Form 13F filings are regulatory documents that report holdings (what stocks/positions
+    managers own). They typically do NOT contain:
+    - Detailed investment strategies or philosophies
+    - Investment theses or rationales for holdings
+    - Market commentary or analysis
+    - Future investment plans or outlooks
 
-    **Example queries:**
-    - "What investment strategies are mentioned in filings?"
-    - "Are there any explanatory notes about risk management?"
-    - "Find filings discussing technology sector investments"
+    **What IS in Form 13F filings:**
+    - Manager contact information and details
+    - Amendment notices and explanations
+    - Regulatory disclosures and boilerplate
+    - Notes about fund structure and relying advisers
+    - Occasional brief explanatory notes about filing changes
+
+    **Best use cases for semantic search:**
+    - "Which managers filed amendments?"
+    - "Find filings mentioning third-party portfolio management"
+    - "Show me manager addresses and contact information"
+    - "Find amendment explanations or corrections"
+    - "Locate filings from managers based in [city/state]"
+
+    **NOT recommended (limited/no data):**
+    - "What investment strategies do managers use?" ❌
+    - "Find filings discussing AI or technology investments" ❌
+    - "What is [manager]'s investment philosophy?" ❌
+
+    For analyzing actual investment positions and holdings data,
+    use the SQL query endpoints instead.
 
     **Parameters:**
     - `query`: Your search query (3-500 characters)
     - `top_k`: Number of results to return (1-20, default: 5)
     - `filter_accession`: Optional - filter to specific filing
     - `filter_content_type`: Optional - filter to specific content type
-      (e.g., "explanatory_notes", "cover_page", "information_table")
+      (e.g., "explanatory_notes", "cover_page_info", "amendment_info")
 
     **Returns:**
     - List of matching text sections with relevance scores

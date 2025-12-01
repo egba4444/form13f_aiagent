@@ -197,6 +197,19 @@ def render_semantic_search_tab(api_base_url: str):
     st.markdown("""
     Search filing text content using AI-powered semantic search.
     This understands the **meaning** of your query, not just keywords.
+
+    **⚠️ Important Limitations:**
+    Form 13F filings are regulatory documents that report holdings. They typically **do NOT contain**:
+    - Investment strategies or philosophies
+    - Investment theses or market commentary
+    - Future plans or outlooks
+
+    **✅ Best used for:**
+    - Manager contact information
+    - Amendment notices and explanations
+    - Filing structure and disclosures
+
+    **For investment holdings and position data, use the Chat or Portfolio tabs instead.**
     """)
 
     # Search configuration
@@ -245,18 +258,18 @@ def render_semantic_search_tab(api_base_url: str):
     example_col1, example_col2, example_col3 = st.columns(3)
 
     with example_col1:
-        if st.button("💼 Investment Strategies", use_container_width=True):
-            search_query = "investment strategies and methodologies"
-            st.rerun()
-
-    with example_col2:
         if st.button("📋 Manager Information", use_container_width=True):
             search_query = "manager names and addresses"
             st.rerun()
 
+    with example_col2:
+        if st.button("📝 Amendments", use_container_width=True):
+            search_query = "amendment explanations and corrections"
+            st.rerun()
+
     with example_col3:
-        if st.button("📝 Explanatory Notes", use_container_width=True):
-            search_query = "amendments and explanations"
+        if st.button("🏢 Third-Party Management", use_container_width=True):
+            search_query = "third-party portfolio management or relying advisers"
             st.rerun()
 
     # Search button
@@ -279,7 +292,23 @@ def render_semantic_search_tab(api_base_url: str):
                 result_count = results.get("results_count", 0)
 
                 if result_count > 0:
-                    st.success(f"Found {result_count} result{'s' if result_count != 1 else ''}")
+                    # Check if results are low quality (all scores below 0.4)
+                    max_score = max([r.get("relevance_score", 0) for r in result_list]) if result_list else 0
+
+                    if max_score < 0.4:
+                        st.warning(f"⚠️ Found {result_count} result(s), but relevance scores are low.")
+                        st.info("""
+                        **Tip:** Form 13F filings typically don't contain detailed investment strategies or commentary.
+
+                        If you're looking for:
+                        - Investment strategies → Not disclosed in 13F filings
+                        - Portfolio positions → Use the **Chat** or **Portfolio** tabs instead
+                        - Holdings analysis → Try the SQL query interface
+
+                        Best semantic search uses: manager contact info, amendments, regulatory disclosures
+                        """)
+                    else:
+                        st.success(f"Found {result_count} result{'s' if result_count != 1 else ''}")
 
                     # Display results
                     for i, result in enumerate(result_list, 1):
