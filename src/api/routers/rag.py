@@ -52,11 +52,11 @@ async def semantic_search(request: SemanticSearchRequest):
     - Occasional brief explanatory notes about filing changes
 
     **Best use cases for semantic search:**
-    - "Which managers filed amendments?"
-    - "Find filings mentioning third-party portfolio management"
-    - "Show me manager addresses and contact information"
-    - "Find amendment explanations or corrections"
-    - "Locate filings from managers based in [city/state]"
+    - "filing manager" (returns manager contact details)
+    - "relying adviser" (finds third-party management disclosures)
+    - "confidential treatment" (finds filings with omitted info)
+    - "education fund" (specific fund type searches)
+    - "Israel" or "California" (location-based searches)
 
     **NOT recommended (limited/no data):**
     - "What investment strategies do managers use?" ❌

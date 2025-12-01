@@ -258,18 +258,18 @@ def render_semantic_search_tab(api_base_url: str):
     example_col1, example_col2, example_col3 = st.columns(3)
 
     with example_col1:
-        if st.button("📋 Manager Information", use_container_width=True):
-            search_query = "manager names and addresses"
+        if st.button("📋 Filing Manager Info", use_container_width=True):
+            search_query = "filing manager"
             st.rerun()
 
     with example_col2:
-        if st.button("📝 Amendments", use_container_width=True):
-            search_query = "amendment explanations and corrections"
+        if st.button("🏢 Relying Advisers", use_container_width=True):
+            search_query = "relying adviser"
             st.rerun()
 
     with example_col3:
-        if st.button("🏢 Third-Party Management", use_container_width=True):
-            search_query = "third-party portfolio management or relying advisers"
+        if st.button("🔒 Confidential Treatment", use_container_width=True):
+            search_query = "confidential treatment"
             st.rerun()
 
     # Search button
