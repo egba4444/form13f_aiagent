@@ -292,10 +292,10 @@ def render_semantic_search_tab(api_base_url: str):
                 result_count = results.get("results_count", 0)
 
                 if result_count > 0:
-                    # Check if results are low quality (all scores below 0.4)
+                    # Check if results are low quality (all scores below 0.5)
                     max_score = max([r.get("relevance_score", 0) for r in result_list]) if result_list else 0
 
-                    if max_score < 0.4:
+                    if max_score < 0.5:
                         st.warning(f"⚠️ Found {result_count} result(s), but relevance scores are low.")
                         st.info("""
                         **Tip:** Form 13F filings typically don't contain detailed investment strategies or commentary.
