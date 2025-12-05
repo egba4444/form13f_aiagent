@@ -352,6 +352,18 @@ class SemanticSearchRequest(BaseModel):
         None,
         description="Filter to specific content type (e.g., 'explanatory_notes', 'cover_page')"
     )
+    filter_cik_company: Optional[str] = Field(
+        None,
+        description="Filter to specific company CIK (10-K filings only)"
+    )
+    filter_section: Optional[str] = Field(
+        None,
+        description="Filter to specific 10-K section (e.g., 'Item 1A', 'Item 7')"
+    )
+    filter_year: Optional[int] = Field(
+        None,
+        description="Filter to specific filing year"
+    )
 
 
 class SemanticSearchResult(BaseModel):

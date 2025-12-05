@@ -95,7 +95,10 @@ async def semantic_search(request: SemanticSearchRequest):
             query=request.query,
             top_k=request.top_k,
             filter_accession=request.filter_accession,
-            filter_content_type=request.filter_content_type
+            filter_content_type=request.filter_content_type,
+            filter_cik_company=request.filter_cik_company,
+            filter_section=request.filter_section,
+            filter_year=request.filter_year
         )
 
         if not result.get("success"):

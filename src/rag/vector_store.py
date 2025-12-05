@@ -105,6 +105,27 @@ class VectorStore:
             field_schema=PayloadSchemaType.KEYWORD
         )
 
+        # Index for cik_company (used for filtering by company - 10-K)
+        self.client.create_payload_index(
+            collection_name=self.collection_name,
+            field_name="cik_company",
+            field_schema=PayloadSchemaType.KEYWORD
+        )
+
+        # Index for section_name (used for filtering by 10-K section)
+        self.client.create_payload_index(
+            collection_name=self.collection_name,
+            field_name="section_name",
+            field_schema=PayloadSchemaType.KEYWORD
+        )
+
+        # Index for filing_year (used for filtering by year)
+        self.client.create_payload_index(
+            collection_name=self.collection_name,
+            field_name="filing_year",
+            field_schema=PayloadSchemaType.INTEGER
+        )
+
         logger.info(f"Collection created successfully with payload indexes")
         return True
 
@@ -123,6 +144,22 @@ class VectorStore:
             logger.error(f"Error deleting collection: {e}")
             return False
 
+    def clear_collection(self) -> bool:
+        """
+        Clear all data from collection and recreate it.
+
+        This is useful when switching from 13F to 10-K data, as it removes
+        all existing embeddings and recreates the collection with fresh indexes.
+
+        Returns:
+            True if successful
+        """
+        logger.warning(f"Clearing collection: {self.collection_name}")
+        self.delete_collection()
+        self.create_collection()
+        logger.info(f"Collection cleared and recreated successfully")
+        return True
+
     def get_collection_info(self) -> Optional[Dict]:
         """
         Get information about the collection.
@@ -134,7 +171,6 @@ class VectorStore:
             info = self.client.get_collection(self.collection_name)
             return {
                 "name": self.collection_name,
-                "vectors_count": info.vectors_count,
                 "points_count": info.points_count,
                 "status": info.status,
             }
@@ -146,7 +182,10 @@ class VectorStore:
         self,
         chunks: List[TextChunk],
         embeddings: List[List[float]],
-        batch_size: int = 100
+        batch_size: int = 100,
+        cik_company: Optional[str] = None,
+        filing_year: Optional[int] = None,
+        section_name: Optional[str] = None
     ) -> int:
         """
         Upload chunks with their embeddings to Qdrant.
@@ -155,6 +194,9 @@ class VectorStore:
             chunks: List of text chunks
             embeddings: List of embedding vectors (same order as chunks)
             batch_size: Number of points to upload per batch
+            cik_company: CIK of the company (for 10-K filings)
+            filing_year: Year of the filing (e.g., 2023)
+            section_name: 10-K section name (e.g., "Item 1A")
 
         Returns:
             Number of points uploaded
@@ -170,18 +212,28 @@ class VectorStore:
         # Prepare points for upload
         points = []
         for chunk, embedding in zip(chunks, embeddings):
+            payload = {
+                "text": chunk.text,
+                "accession_number": chunk.accession_number,
+                "content_type": chunk.content_type,
+                "chunk_index": chunk.chunk_index,
+                "total_chunks": chunk.total_chunks,
+                "char_start": chunk.char_start,
+                "char_end": chunk.char_end,
+            }
+
+            # Add 10-K specific metadata if provided
+            if cik_company:
+                payload["cik_company"] = cik_company
+            if filing_year:
+                payload["filing_year"] = filing_year
+            if section_name:
+                payload["section_name"] = section_name
+
             point = PointStruct(
                 id=str(uuid.uuid4()),  # Use UUID to avoid ID collisions
                 vector=embedding,
-                payload={
-                    "text": chunk.text,
-                    "accession_number": chunk.accession_number,
-                    "content_type": chunk.content_type,
-                    "chunk_index": chunk.chunk_index,
-                    "total_chunks": chunk.total_chunks,
-                    "char_start": chunk.char_start,
-                    "char_end": chunk.char_end,
-                }
+                payload=payload
             )
             points.append(point)
 
@@ -205,7 +257,10 @@ class VectorStore:
         top_k: int = 5,
         score_threshold: Optional[float] = None,
         filter_accession: Optional[str] = None,
-        filter_content_type: Optional[str] = None
+        filter_content_type: Optional[str] = None,
+        filter_cik_company: Optional[str] = None,
+        filter_section: Optional[str] = None,
+        filter_year: Optional[int] = None
     ) -> List[Dict]:
         """
         Search for similar chunks.
@@ -216,31 +271,58 @@ class VectorStore:
             score_threshold: Minimum similarity score
             filter_accession: Filter by accession number
             filter_content_type: Filter by content type
+            filter_cik_company: Filter by company CIK (10-K)
+            filter_section: Filter by section name (10-K, e.g. "Item 1A")
+            filter_year: Filter by filing year (10-K)
 
         Returns:
             List of search results with text, metadata, and scores
         """
         # Build filter
         query_filter = None
-        if filter_accession or filter_content_type:
-            conditions = []
+        conditions = []
 
-            if filter_accession:
-                conditions.append(
-                    FieldCondition(
-                        key="accession_number",
-                        match=MatchValue(value=filter_accession)
-                    )
+        if filter_accession:
+            conditions.append(
+                FieldCondition(
+                    key="accession_number",
+                    match=MatchValue(value=filter_accession)
                 )
+            )
 
-            if filter_content_type:
-                conditions.append(
-                    FieldCondition(
-                        key="content_type",
-                        match=MatchValue(value=filter_content_type)
-                    )
+        if filter_content_type:
+            conditions.append(
+                FieldCondition(
+                    key="content_type",
+                    match=MatchValue(value=filter_content_type)
                 )
+            )
 
+        if filter_cik_company:
+            conditions.append(
+                FieldCondition(
+                    key="cik_company",
+                    match=MatchValue(value=filter_cik_company)
+                )
+            )
+
+        if filter_section:
+            conditions.append(
+                FieldCondition(
+                    key="section_name",
+                    match=MatchValue(value=filter_section)
+                )
+            )
+
+        if filter_year:
+            conditions.append(
+                FieldCondition(
+                    key="filing_year",
+                    match=MatchValue(value=filter_year)
+                )
+            )
+
+        if conditions:
             query_filter = Filter(must=conditions)
 
         # Search (using query_points for newer Qdrant client)
@@ -256,14 +338,24 @@ class VectorStore:
         # Format results
         formatted_results = []
         for result in results:
-            formatted_results.append({
+            result_dict = {
                 "text": result.payload["text"],
                 "accession_number": result.payload["accession_number"],
                 "content_type": result.payload["content_type"],
                 "chunk_index": result.payload["chunk_index"],
                 "total_chunks": result.payload["total_chunks"],
                 "score": result.score,
-            })
+            }
+
+            # Add 10-K metadata if present
+            if "cik_company" in result.payload:
+                result_dict["cik_company"] = result.payload["cik_company"]
+            if "section_name" in result.payload:
+                result_dict["section_name"] = result.payload["section_name"]
+            if "filing_year" in result.payload:
+                result_dict["filing_year"] = result.payload["filing_year"]
+
+            formatted_results.append(result_dict)
 
         return formatted_results
 

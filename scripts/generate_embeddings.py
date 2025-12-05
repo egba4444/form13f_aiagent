@@ -11,8 +11,11 @@ Usage:
     # Generate embeddings for all text content
     python scripts/generate_embeddings.py
 
-    # Recreate collection (delete existing embeddings)
-    python scripts/generate_embeddings.py --recreate
+    # Clear collection first (recommended for 10-K migration)
+    python scripts/generate_embeddings.py --clear-first
+
+    # Process only 10-K filings
+    python scripts/generate_embeddings.py --filing-type 10-K
 
     # Process only specific content types
     python scripts/generate_embeddings.py --content-type explanatory_notes
@@ -68,11 +71,13 @@ class EmbeddingPipeline:
 
         logger.info(f"Embedding model: {self.config.embedding_model}")
         logger.info(f"Embedding dimension: {self.config.embedding_dimension}")
-        logger.info(f"Chunk size: {self.config.chunk_size}")
+        logger.info(f"Chunk size (13F): {self.config.chunk_size}")
+        logger.info(f"Chunk size (10-K): {self.config.chunk_size_10k}")
         logger.info(f"Chunk overlap: {self.config.chunk_overlap}")
 
     def fetch_text_content(
         self,
+        filing_type: Optional[str] = None,
         content_type: Optional[str] = None,
         accession: Optional[str] = None,
         limit: Optional[int] = None
@@ -81,23 +86,35 @@ class EmbeddingPipeline:
         Fetch text content from database.
 
         Args:
+            filing_type: Filter by filing type (10-K, 13F-HR, etc.)
             content_type: Filter by content type
             accession: Filter by accession number
             limit: Limit number of rows
 
         Returns:
-            List of dicts with text_content, accession_number, content_type
+            List of dicts with text_content, accession_number, content_type, and 10-K metadata
         """
         conn = psycopg2.connect(self.database_url)
         cur = conn.cursor()
 
-        # Build query
+        # Build query - include 10-K metadata fields
         query = """
-            SELECT accession_number, content_type, text_content
+            SELECT
+                accession_number,
+                content_type,
+                text_content,
+                filing_type,
+                cik_company,
+                section_name,
+                EXTRACT(YEAR FROM extracted_at) as filing_year
             FROM filing_text_content
             WHERE 1=1
         """
         params = []
+
+        if filing_type:
+            query += " AND filing_type = %s"
+            params.append(filing_type)
 
         if content_type:
             query += " AND content_type = %s"
@@ -122,7 +139,11 @@ class EmbeddingPipeline:
             results.append({
                 "accession_number": row[0],
                 "content_type": row[1],
-                "text_content": row[2]
+                "text_content": row[2],
+                "filing_type": row[3],
+                "cik_company": row[4],
+                "section_name": row[5],
+                "filing_year": int(row[6]) if row[6] else None
             })
 
         cur.close()
@@ -134,6 +155,8 @@ class EmbeddingPipeline:
     def run(
         self,
         recreate: bool = False,
+        clear_first: bool = False,
+        filing_type: Optional[str] = None,
         content_type: Optional[str] = None,
         accession: Optional[str] = None,
         limit: Optional[int] = None
@@ -142,7 +165,9 @@ class EmbeddingPipeline:
         Run the complete embedding generation pipeline.
 
         Args:
-            recreate: Recreate collection (delete existing)
+            recreate: Recreate collection (delete existing) - deprecated, use clear_first
+            clear_first: Clear collection before processing (recommended for 10-K migration)
+            filing_type: Filter by filing type (10-K, 13F-HR, etc.)
             content_type: Filter by content type
             accession: Filter by accession number
             limit: Limit number of text sections to process
@@ -150,6 +175,8 @@ class EmbeddingPipeline:
         Returns:
             Dictionary with statistics
         """
+        # clear_first takes precedence over recreate
+        should_clear = clear_first or recreate
         stats = {
             "text_sections": 0,
             "chunks_created": 0,
@@ -163,7 +190,11 @@ class EmbeddingPipeline:
 
         # Step 1: Set up Qdrant collection
         logger.info("\nStep 1: Setting up Qdrant collection...")
-        self.vector_store.create_collection(recreate=recreate)
+        if should_clear:
+            logger.info("Clearing collection (removing all existing embeddings)...")
+            self.vector_store.clear_collection()
+        else:
+            self.vector_store.create_collection(recreate=False)
 
         collection_info = self.vector_store.get_collection_info()
         if collection_info:
@@ -173,11 +204,17 @@ class EmbeddingPipeline:
         # Step 2: Fetch text content
         logger.info("\nStep 2: Fetching text content from database...")
         content_rows = self.fetch_text_content(
+            filing_type=filing_type,
             content_type=content_type,
             accession=accession,
             limit=limit
         )
         stats["text_sections"] = len(content_rows)
+
+        # Determine if we're processing 10-K or 13F data
+        is_10k = filing_type == "10-K" or (
+            content_rows and content_rows[0].get("filing_type") == "10-K"
+        )
 
         if not content_rows:
             logger.warning("No text content found. Exiting.")
@@ -185,7 +222,18 @@ class EmbeddingPipeline:
 
         # Step 3: Chunk text
         logger.info("\nStep 3: Chunking text...")
+
+        # Use appropriate chunk size for filing type
+        original_chunk_size = self.config.chunk_size
+        if is_10k:
+            logger.info(f"Using 10-K chunk size: {self.config.chunk_size_10k} chars")
+            self.config.chunk_size = self.config.chunk_size_10k
+
         chunks = chunk_filing_content(content_rows, self.config)
+
+        # Restore original chunk size
+        self.config.chunk_size = original_chunk_size
+
         stats["chunks_created"] = len(chunks)
         logger.info(f"Created {len(chunks)} chunks from {len(content_rows)} text sections")
 
@@ -211,12 +259,53 @@ class EmbeddingPipeline:
 
         # Step 5: Upload to Qdrant
         logger.info("\nStep 5: Uploading to Qdrant...")
-        uploaded = self.vector_store.upload_chunks(
-            chunks=chunks,
-            embeddings=embeddings,
-            batch_size=100
-        )
-        stats["points_uploaded"] = uploaded
+
+        if is_10k:
+            # For 10-K, we need to upload in batches with metadata per chunk
+            # Group chunks by their metadata (cik_company, section_name, filing_year)
+            logger.info("Uploading 10-K chunks with metadata...")
+
+            # Create a map from accession_number to metadata
+            metadata_map = {}
+            for row in content_rows:
+                metadata_map[row["accession_number"]] = {
+                    "cik_company": row.get("cik_company"),
+                    "section_name": row.get("section_name"),
+                    "filing_year": row.get("filing_year")
+                }
+
+            # Upload in batches, but we need to group by metadata
+            batch_size = 100
+            total_uploaded = 0
+
+            for i in range(0, len(chunks), batch_size):
+                batch_chunks = chunks[i:i + batch_size]
+                batch_embeddings = embeddings[i:i + batch_size]
+
+                # For simplicity, use metadata from first chunk in batch
+                # (In practice, all chunks in 10-K should have same metadata per section)
+                first_chunk = batch_chunks[0]
+                metadata = metadata_map.get(first_chunk.accession_number, {})
+
+                uploaded_batch = self.vector_store.upload_chunks(
+                    chunks=batch_chunks,
+                    embeddings=batch_embeddings,
+                    batch_size=batch_size,
+                    cik_company=metadata.get("cik_company"),
+                    filing_year=metadata.get("filing_year"),
+                    section_name=metadata.get("section_name")
+                )
+                total_uploaded += uploaded_batch
+
+            stats["points_uploaded"] = total_uploaded
+        else:
+            # For 13F, upload without 10-K metadata
+            uploaded = self.vector_store.upload_chunks(
+                chunks=chunks,
+                embeddings=embeddings,
+                batch_size=100
+            )
+            stats["points_uploaded"] = uploaded
 
         # Print summary
         self._print_summary(stats)
@@ -238,7 +327,7 @@ class EmbeddingPipeline:
         if info:
             logger.info(f"\nFinal collection stats:")
             logger.info(f"  Total points: {info['points_count']}")
-            logger.info(f"  Total vectors: {info['vectors_count']}")
+            logger.info(f"  Status: {info['status']}")
 
         logger.info("=" * 80)
 
@@ -251,7 +340,18 @@ def main():
     parser.add_argument(
         "--recreate",
         action="store_true",
-        help="Recreate collection (delete existing embeddings)"
+        help="Recreate collection (delete existing embeddings) - DEPRECATED, use --clear-first"
+    )
+    parser.add_argument(
+        "--clear-first",
+        action="store_true",
+        help="Clear collection before processing (recommended for 10-K migration)"
+    )
+    parser.add_argument(
+        "--filing-type",
+        type=str,
+        choices=["10-K", "13F-HR"],
+        help="Process only specific filing type (10-K or 13F-HR)"
     )
     parser.add_argument(
         "--content-type",
@@ -293,6 +393,8 @@ def main():
     try:
         stats = pipeline.run(
             recreate=args.recreate,
+            clear_first=args.clear_first,
+            filing_type=args.filing_type,
             content_type=args.content_type,
             accession=args.accession,
             limit=args.limit

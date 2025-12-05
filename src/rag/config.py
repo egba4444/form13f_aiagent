@@ -48,7 +48,11 @@ class RAGConfig(BaseSettings):
     # Text Chunking
     chunk_size: int = Field(
         default=500,
-        description="Maximum characters per chunk"
+        description="Maximum characters per chunk (for 13F data)"
+    )
+    chunk_size_10k: int = Field(
+        default=1000,
+        description="Maximum characters per chunk for 10-K narrative text"
     )
     chunk_overlap: int = Field(
         default=50,

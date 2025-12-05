@@ -127,7 +127,10 @@ use the query_database tool instead - that's where the actual investment data is
         query: str,
         top_k: Optional[int] = None,
         filter_accession: Optional[str] = None,
-        filter_content_type: Optional[str] = None
+        filter_content_type: Optional[str] = None,
+        filter_cik_company: Optional[str] = None,
+        filter_section: Optional[str] = None,
+        filter_year: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Execute semantic search query.
@@ -137,6 +140,9 @@ use the query_database tool instead - that's where the actual investment data is
             top_k: Number of results to return (1-10)
             filter_accession: Filter to specific filing
             filter_content_type: Filter by content type
+            filter_cik_company: Filter to specific company CIK (10-K)
+            filter_section: Filter to specific 10-K section (e.g., "Item 1A")
+            filter_year: Filter to specific filing year
 
         Returns:
             Dictionary with results and metadata
@@ -164,7 +170,10 @@ use the query_database tool instead - that's where the actual investment data is
                 top_k=top_k,
                 score_threshold=self.config.score_threshold,
                 filter_accession=filter_accession,
-                filter_content_type=filter_content_type
+                filter_content_type=filter_content_type,
+                filter_cik_company=filter_cik_company,
+                filter_section=filter_section,
+                filter_year=filter_year
             )
 
             # Format results for LLM
@@ -178,15 +187,25 @@ use the query_database tool instead - that's where the actual investment data is
                     "chunk_info": f"{result['chunk_index'] + 1}/{result['total_chunks']}"
                 })
 
+            # Build filters_applied dict
+            filters_applied = {}
+            if filter_accession:
+                filters_applied["accession"] = filter_accession
+            if filter_content_type:
+                filters_applied["content_type"] = filter_content_type
+            if filter_cik_company:
+                filters_applied["cik_company"] = filter_cik_company
+            if filter_section:
+                filters_applied["section"] = filter_section
+            if filter_year:
+                filters_applied["year"] = filter_year
+
             return {
                 "success": True,
                 "query": query,
                 "results_count": len(formatted_results),
                 "results": formatted_results,
-                "filters_applied": {
-                    "accession": filter_accession,
-                    "content_type": filter_content_type
-                } if (filter_accession or filter_content_type) else None
+                "filters_applied": filters_applied if filters_applied else None
             }
 
         except Exception as e:
