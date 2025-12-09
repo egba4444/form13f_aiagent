@@ -49,6 +49,36 @@ def semantic_search(api_base_url: str, query: str, top_k: int = 5,
         return None
 
 
+def summarize_results(api_base_url: str, query: str, results: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """
+    Summarize search results using AI.
+
+    Args:
+        api_base_url: Base URL of the API
+        query: Original search query
+        results: Search results to summarize
+
+    Returns:
+        Summary dict or None if error
+    """
+    try:
+        payload = {
+            "query": query,
+            "results": results
+        }
+
+        response = httpx.post(
+            f"{api_base_url}/api/v1/search/summarize",
+            json=payload,
+            timeout=60.0  # Longer timeout for AI processing
+        )
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        st.error(f"AI summarization failed: {e}")
+        return None
+
+
 def get_filing_text(api_base_url: str, accession_number: str,
                    content_type: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """
@@ -309,6 +339,21 @@ def render_semantic_search_tab(api_base_url: str):
                         """)
                     else:
                         st.success(f"Found {result_count} result{'s' if result_count != 1 else ''}")
+
+                    # AI Summarization button
+                    if max_score >= 0.5:  # Only show if results are decent quality
+                        st.markdown("---")
+                        if st.button("✨ Summarize with AI", type="secondary", use_container_width=True,
+                                   help="Generate a financial analyst-style summary using Claude (~$0.01 cost)"):
+                            with st.spinner("AI is analyzing the results..."):
+                                summary = summarize_results(api_base_url, search_query, result_list)
+
+                            if summary and summary.get("success"):
+                                st.info("**✨ AI Financial Analysis** (Powered by Claude)")
+                                st.markdown(summary.get("summary", ""))
+                            else:
+                                st.error("Failed to generate summary. Please try again.")
+                        st.markdown("---")
 
                     # Display results
                     for i, result in enumerate(result_list, 1):
