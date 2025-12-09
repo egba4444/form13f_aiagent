@@ -71,9 +71,57 @@
             font-weight: 700;
         }
 
+        /* Tabs */
+        .tabs {
+            background: white;
+            border-radius: 12px 12px 0 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 16px 24px;
+            background: #f7fafc;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            color: #718096;
+            transition: all 0.2s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab:first-child {
+            border-radius: 12px 0 0 0;
+        }
+
+        .tab:last-child {
+            border-radius: 0 12px 0 0;
+        }
+
+        .tab:hover {
+            background: #edf2f7;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
         .chat-container {
             background: white;
-            border-radius: 12px;
+            border-radius: 0 0 12px 12px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             display: flex;
             flex-direction: column;
@@ -237,13 +285,105 @@
         .example-query:hover {
             background: #e2e8f0;
         }
+
+        /* Semantic Search Styles */
+        .search-form {
+            padding: 24px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            color: #4a5568;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: #667eea;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .search-results {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .result-card {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .result-score {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .result-meta {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 8px;
+        }
+
+        .result-text {
+            color: #1a202c;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #718096;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>Form 13F AI Agent</h1>
-            <p>Ask questions about institutional investor holdings in natural language</p>
+            <p>Ask questions about institutional holdings and search Form 10-K filings</p>
         </div>
 
         <div class="stats-grid" id="statsGrid">
@@ -265,29 +405,94 @@
             </div>
         </div>
 
-        <div class="chat-container">
-            <div class="chat-messages" id="chatMessages">
-                <div class="message message-assistant">
-                    <div class="message-bubble">
-                        Hello! I'm your Form 13F AI assistant. Ask me questions about institutional holdings data.
-                        <div class="example-queries">
-                            <div class="example-query" onclick="setQuery('How many managers are in the database?')">How many managers are in the database?</div>
-                            <div class="example-query" onclick="setQuery('Show me the top 5 managers by total portfolio value')">Top 5 managers by value</div>
-                            <div class="example-query" onclick="setQuery('What were the most commonly held stocks?')">Most held stocks</div>
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('chat')">Chat Query</button>
+            <button class="tab" onclick="switchTab('semantic')">Semantic Search (10-K)</button>
+        </div>
+
+        <!-- Chat Tab -->
+        <div id="chatTab" class="tab-content active">
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message message-assistant">
+                        <div class="message-bubble">
+                            Hello! I'm your Form 13F AI assistant. Ask me questions about institutional holdings data.
+                            <div class="example-queries">
+                                <div class="example-query" onclick="setQuery('How many managers are in the database?')">How many managers are in the database?</div>
+                                <div class="example-query" onclick="setQuery('Show me the top 5 managers by total portfolio value')">Top 5 managers by value</div>
+                                <div class="example-query" onclick="setQuery('What were the most commonly held stocks?')">Most held stocks</div>
+                            </div>
                         </div>
                     </div>
                 </div>
+                <div class="chat-input-container">
+                    <div class="chat-input-wrapper">
+                        <input
+                            type="text"
+                            class="chat-input"
+                            id="queryInput"
+                            placeholder="Ask a question about Form 13F holdings..."
+                            onkeypress="handleChatKeyPress(event)"
+                        >
+                        <button class="send-button" id="sendButton" onclick="sendQuery()">Send</button>
+                    </div>
+                </div>
             </div>
-            <div class="chat-input-container">
-                <div class="chat-input-wrapper">
-                    <input
-                        type="text"
-                        class="chat-input"
-                        id="queryInput"
-                        placeholder="Ask a question about Form 13F holdings..."
-                        onkeypress="handleKeyPress(event)"
-                    >
-                    <button class="send-button" id="sendButton" onclick="sendQuery()">Send</button>
+        </div>
+
+        <!-- Semantic Search Tab -->
+        <div id="semanticTab" class="tab-content">
+            <div class="chat-container">
+                <div class="search-form">
+                    <div class="form-group">
+                        <label class="form-label">Search Query</label>
+                        <input
+                            type="text"
+                            class="form-input"
+                            id="semanticQuery"
+                            placeholder="e.g., What are the main business risks?"
+                            onkeypress="handleSemanticKeyPress(event)"
+                        >
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Company CIK (Optional)</label>
+                            <input
+                                type="text"
+                                class="form-input"
+                                id="filterCik"
+                                placeholder="e.g., 0000320193 (Apple)"
+                            >
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Results Count</label>
+                            <input
+                                type="number"
+                                class="form-input"
+                                id="topK"
+                                value="5"
+                                min="1"
+                                max="20"
+                            >
+                        </div>
+                    </div>
+                    <button class="send-button" id="searchButton" onclick="performSemanticSearch()" style="width: 100%; margin-top: 8px;">
+                        Search 10-K Filings
+                    </button>
+                    <div class="example-queries">
+                        <div class="example-query" onclick="setSemanticQuery('What are the main business risks?')">Business Risks</div>
+                        <div class="example-query" onclick="setSemanticQuery('revenue recognition policies')">Revenue Recognition</div>
+                        <div class="example-query" onclick="setSemanticQuery('supply chain and manufacturing')">Supply Chain</div>
+                        <div class="example-query" onclick="setSemanticQuery('competition and market position')">Competition</div>
+                    </div>
+                </div>
+                <div class="search-results" id="searchResults">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔍</div>
+                        <h3>Search Form 10-K Filings</h3>
+                        <p style="margin-top: 8px;">Enter a query above to search through company 10-K narrative content using AI-powered semantic search.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -296,6 +501,20 @@
     <script>
         const API_BASE = window.location.origin;
         let isLoading = false;
+        let isSearching = false;
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
 
         // Load stats on page load
         async function loadStats() {
@@ -316,12 +535,13 @@
             return new Intl.NumberFormat().format(num);
         }
 
+        // Chat functions
         function setQuery(text) {
             document.getElementById('queryInput').value = text;
             document.getElementById('queryInput').focus();
         }
 
-        function handleKeyPress(event) {
+        function handleChatKeyPress(event) {
             if (event.key === 'Enter' && !isLoading) {
                 sendQuery();
             }
@@ -438,6 +658,115 @@
             button.disabled = isLoading;
             input.disabled = isLoading;
             button.textContent = isLoading ? 'Sending...' : 'Send';
+        }
+
+        // Semantic Search functions
+        function setSemanticQuery(text) {
+            document.getElementById('semanticQuery').value = text;
+            document.getElementById('semanticQuery').focus();
+        }
+
+        function handleSemanticKeyPress(event) {
+            if (event.key === 'Enter' && !isSearching) {
+                performSemanticSearch();
+            }
+        }
+
+        async function performSemanticSearch() {
+            const query = document.getElementById('semanticQuery').value.trim();
+            const filterCik = document.getElementById('filterCik').value.trim();
+            const topK = parseInt(document.getElementById('topK').value) || 5;
+
+            if (!query || isSearching) return;
+
+            const resultsDiv = document.getElementById('searchResults');
+            const searchButton = document.getElementById('searchButton');
+
+            // Show loading
+            isSearching = true;
+            searchButton.disabled = true;
+            searchButton.textContent = 'Searching...';
+            resultsDiv.innerHTML = '<div class="empty-state"><div class="loading" style="width: 40px; height: 40px;"></div><p style="margin-top: 16px;">Searching 10-K filings...</p></div>';
+
+            try {
+                const payload = {
+                    query: query,
+                    top_k: topK
+                };
+
+                if (filterCik) {
+                    payload.filter_cik_company = filterCik;
+                }
+
+                const response = await fetch(`${API_BASE}/api/v1/search/semantic`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.results && data.results.length > 0) {
+                    displaySearchResults(data.results, data.query);
+                } else if (data.success) {
+                    resultsDiv.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📭</div>
+                            <h3>No results found</h3>
+                            <p style="margin-top: 8px;">Try adjusting your query or filters.</p>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">⚠️</div>
+                            <h3>Search Error</h3>
+                            <p style="margin-top: 8px; color: #f56565;">${escapeHtml(data.error || 'Unknown error')}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <h3>Connection Error</h3>
+                        <p style="margin-top: 8px; color: #f56565;">${escapeHtml(error.message)}</p>
+                    </div>
+                `;
+            } finally {
+                isSearching = false;
+                searchButton.disabled = false;
+                searchButton.textContent = 'Search 10-K Filings';
+            }
+        }
+
+        function displaySearchResults(results, query) {
+            const resultsDiv = document.getElementById('searchResults');
+            let html = `<h3 style="margin-bottom: 16px; color: #1a202c;">Found ${results.length} results for "${escapeHtml(query)}"</h3>`;
+
+            results.forEach((result, index) => {
+                const score = (result.relevance_score * 100).toFixed(1);
+                html += `
+                    <div class="result-card">
+                        <div class="result-header">
+                            <div class="result-meta">
+                                <strong>Result ${index + 1}</strong> • ${escapeHtml(result.content_type)}
+                            </div>
+                            <div class="result-score">${score}% match</div>
+                        </div>
+                        <div class="result-meta">
+                            Accession: ${escapeHtml(result.accession_number)}
+                        </div>
+                        <div class="result-text">
+                            ${escapeHtml(result.text)}
+                        </div>
+                    </div>
+                `;
+            });
+
+            resultsDiv.innerHTML = html;
         }
 
         // Load stats when page loads
