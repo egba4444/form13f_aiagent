@@ -242,89 +242,98 @@ def render_semantic_search_tab(api_base_url: str):
     **For investment holdings and position data, use the Chat or Portfolio tabs instead.**
     """)
 
-    # Search configuration
-    col1, col2 = st.columns([3, 1])
-
-    with col1:
-        search_query = st.text_input(
-            "Search query",
-            placeholder="e.g., investment strategies, risk management, technology sector",
-            help="Enter a natural language query to search filing text"
-        )
-
-    with col2:
-        top_k = st.slider(
-            "Results",
-            min_value=1,
-            max_value=20,
-            value=5,
-            help="Number of results to return"
-        )
-
-    # Advanced filters
-    with st.expander("⚙️ Advanced Filters"):
-        col_a, col_b = st.columns(2)
-
-        with col_a:
-            filter_accession = st.text_input(
-                "Filter by filing (accession number)",
-                placeholder="e.g., 0001067983-25-000001",
-                help="Optional: Search only within a specific filing"
-            )
-
-        with col_b:
-            filter_content_type = st.selectbox(
-                "Filter by section type",
-                options=["All Sections", "cover_page_info", "explanatory_notes", "information_table"],
-                help="Optional: Search only in specific section types"
-            )
-
-            # Convert "All Sections" to None
-            if filter_content_type == "All Sections":
-                filter_content_type = None
-
-    # Example queries
+    # Example queries (outside form)
     st.markdown("**Example Queries:**")
     example_col1, example_col2, example_col3 = st.columns(3)
 
     with example_col1:
         if st.button("📋 Filing Manager Info", use_container_width=True):
-            search_query = "filing manager"
+            st.session_state["example_query"] = "filing manager"
             st.rerun()
 
     with example_col2:
         if st.button("🏢 Relying Advisers", use_container_width=True):
-            search_query = "relying adviser"
+            st.session_state["example_query"] = "relying adviser"
             st.rerun()
 
     with example_col3:
         if st.button("🔒 Confidential Treatment", use_container_width=True):
-            search_query = "confidential treatment"
+            st.session_state["example_query"] = "confidential treatment"
             st.rerun()
 
-    # Search button
-    if st.button("🔎 Search", type="primary", use_container_width=True, disabled=not search_query):
-        if search_query:
-            with st.spinner("Searching..."):
-                # Store API URL in session state for use in expanders
-                st.session_state["api_base_url"] = api_base_url
+    # Use form so Enter key submits the search
+    with st.form("search_form", clear_on_submit=False):
+        col1, col2 = st.columns([3, 1])
 
-                results = semantic_search(
-                    api_base_url,
-                    search_query,
-                    top_k=top_k,
-                    filter_accession=filter_accession if filter_accession else None,
-                    filter_content_type=filter_content_type
+        with col1:
+            # Pre-fill with example query if clicked
+            default_query = st.session_state.get("example_query", "")
+            search_query = st.text_input(
+                "Search query",
+                value=default_query,
+                placeholder="e.g., business risks, revenue recognition, supply chain",
+                help="Enter a natural language query and press Enter to search"
+            )
+            # Clear example query after using it
+            if default_query:
+                st.session_state["example_query"] = ""
+
+        with col2:
+            top_k = st.slider(
+                "Results",
+                min_value=1,
+                max_value=20,
+                value=5,
+                help="Number of results to return"
+            )
+
+        # Advanced filters
+        with st.expander("⚙️ Advanced Filters"):
+            col_a, col_b = st.columns(2)
+
+            with col_a:
+                filter_accession = st.text_input(
+                    "Filter by filing (accession number)",
+                    placeholder="e.g., 0001067983-25-000001",
+                    help="Optional: Search only within a specific filing"
                 )
 
-            if results and results.get("success"):
-                # Store results in session state so they persist across reruns
-                st.session_state["search_results"] = results.get("results", [])
-                st.session_state["search_query"] = search_query
-                st.session_state["search_result_count"] = results.get("results_count", 0)
-            else:
-                st.error("Search failed. Please try again.")
-                st.session_state["search_results"] = None
+            with col_b:
+                filter_content_type = st.selectbox(
+                    "Filter by section type",
+                    options=["All Sections", "cover_page_info", "explanatory_notes", "information_table"],
+                    help="Optional: Search only in specific section types"
+                )
+
+                # Convert "All Sections" to None
+                if filter_content_type == "All Sections":
+                    filter_content_type = None
+
+        # Form submit button - Enter key will trigger this
+        search_submitted = st.form_submit_button("🔎 Search", type="primary", use_container_width=True)
+
+    # Handle search when form is submitted
+    if search_submitted and search_query:
+        with st.spinner("Searching..."):
+            # Store API URL in session state for use in expanders
+            st.session_state["api_base_url"] = api_base_url
+
+            results = semantic_search(
+                api_base_url,
+                search_query,
+                top_k=top_k,
+                filter_accession=filter_accession if filter_accession else None,
+                filter_content_type=filter_content_type
+            )
+
+        if results and results.get("success"):
+            # Store results in session state so they persist across reruns
+            st.session_state["search_results"] = results.get("results", [])
+            st.session_state["search_query"] = search_query
+            st.session_state["search_result_count"] = results.get("results_count", 0)
+        else:
+            st.error("Search failed. Please try again.")
+            st.session_state["search_results"] = None
 
     # Display results if they exist in session state
     if "search_results" in st.session_state and st.session_state["search_results"]:
