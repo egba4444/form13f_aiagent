@@ -742,9 +742,28 @@
             }
         }
 
+        let currentResults = [];
+        let currentQuery = '';
+
         function displaySearchResults(results, query) {
+            currentResults = results;
+            currentQuery = query;
+
             const resultsDiv = document.getElementById('searchResults');
-            let html = `<h3 style="margin-bottom: 16px; color: #1a202c;">Found ${results.length} results for "${escapeHtml(query)}"</h3>`;
+            let html = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 style="margin: 0; color: #1a202c;">Found ${results.length} results for "${escapeHtml(query)}"</h3>
+                    <button
+                        onclick="summarizeResults()"
+                        class="send-button"
+                        style="padding: 8px 20px; font-size: 13px;"
+                        id="summarizeBtn"
+                    >
+                        ✨ Summarize with AI
+                    </button>
+                </div>
+                <div id="aiSummary" style="display: none;"></div>
+            `;
 
             results.forEach((result, index) => {
                 const score = (result.relevance_score * 100).toFixed(1);
@@ -767,6 +786,76 @@
             });
 
             resultsDiv.innerHTML = html;
+        }
+
+        async function summarizeResults() {
+            if (!currentResults || currentResults.length === 0) return;
+
+            const summaryDiv = document.getElementById('aiSummary');
+            const btn = document.getElementById('summarizeBtn');
+
+            // Show loading
+            btn.disabled = true;
+            btn.textContent = 'Generating...';
+            summaryDiv.style.display = 'block';
+            summaryDiv.innerHTML = `
+                <div class="result-card" style="background: #f0f9ff; border-color: #667eea;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="loading" style="width: 20px; height: 20px;"></div>
+                        <div>AI is analyzing the results...</div>
+                    </div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/search/summarize`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: currentQuery,
+                        results: currentResults
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    summaryDiv.innerHTML = `
+                        <div class="result-card" style="background: #f0f9ff; border-color: #667eea;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                                <span style="font-size: 20px;">✨</span>
+                                <strong style="color: #667eea;">AI Financial Analysis</strong>
+                                <span style="font-size: 11px; color: #718096; margin-left: auto;">Powered by Claude</span>
+                            </div>
+                            <div style="line-height: 1.7; color: #1a202c; white-space: pre-wrap;">
+                                ${escapeHtml(data.summary)}
+                            </div>
+                        </div>
+                    `;
+                    btn.textContent = '✓ Summarized';
+                    btn.style.background = '#48bb78';
+                } else {
+                    summaryDiv.innerHTML = `
+                        <div class="result-card" style="background: #fff5f5; border-color: #f56565;">
+                            <strong style="color: #f56565;">Error generating summary</strong>
+                            <p style="margin-top: 8px; font-size: 13px;">${escapeHtml(data.error || 'Unknown error')}</p>
+                        </div>
+                    `;
+                    btn.disabled = false;
+                    btn.textContent = '✨ Summarize with AI';
+                }
+            } catch (error) {
+                summaryDiv.innerHTML = `
+                    <div class="result-card" style="background: #fff5f5; border-color: #f56565;">
+                        <strong style="color: #f56565;">Connection Error</strong>
+                        <p style="margin-top: 8px; font-size: 13px;">${escapeHtml(error.message)}</p>
+                    </div>
+                `;
+                btn.disabled = false;
+                btn.textContent = '✨ Summarize with AI';
+            }
         }
 
         // Load stats when page loads

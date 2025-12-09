@@ -6,7 +6,9 @@ Semantic search endpoints for filing text content.
 
 from fastapi import APIRouter, HTTPException, status
 from typing import Optional, List, Dict, Any
+from pydantic import BaseModel, Field
 import logging
+import os
 
 from ..schemas import (
     SemanticSearchRequest,
@@ -14,6 +16,7 @@ from ..schemas import (
     FilingTextResponse
 )
 from ...tools.rag_tool import RAGRetrievalTool
+from litellm import completion
 
 logger = logging.getLogger(__name__)
 
@@ -198,4 +201,101 @@ async def get_filing_text(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve filing text: {str(e)}"
+        )
+
+
+class SummarizeRequest(BaseModel):
+    """Request to summarize search results with AI"""
+    query: str = Field(..., description="Original search query")
+    results: List[Dict[str, Any]] = Field(..., description="Search results to summarize")
+
+
+class SummarizeResponse(BaseModel):
+    """AI-generated summary of search results"""
+    success: bool
+    summary: str
+    query: str
+
+
+@router.post("/search/summarize", response_model=SummarizeResponse)
+async def summarize_results(request: SummarizeRequest):
+    """
+    Summarize semantic search results using Claude AI.
+
+    This endpoint takes search results and generates a financial analyst-style
+    summary using Claude. It costs money per request (~$0.005-0.01).
+
+    **Parameters:**
+    - `query`: The original search query
+    - `results`: List of search results to summarize
+
+    **Returns:**
+    - AI-generated summary analyzing the search results
+    """
+    logger.info(f"Summarizing results for query: {request.query[:100]}...")
+
+    if not request.results:
+        return SummarizeResponse(
+            success=True,
+            summary="No results to summarize.",
+            query=request.query
+        )
+
+    try:
+        # Build context from results
+        context = ""
+        for i, result in enumerate(request.results, 1):
+            context += f"\n\n=== Result {i} ===\n"
+            context += f"Section: {result.get('content_type', 'Unknown')}\n"
+            context += f"Relevance: {result.get('relevance_score', 0):.2%}\n"
+            context += f"Text: {result.get('text', '')}\n"
+
+        # Get LLM configuration
+        llm_provider = os.getenv("LLM_PROVIDER", "anthropic")
+        llm_model = os.getenv("LLM_MODEL", "claude-3-5-sonnet-20241022")
+        model_name = f"{llm_provider}/{llm_model}"
+
+        # Create prompt
+        prompt = f"""You are a financial analyst reviewing SEC Form 10-K filing excerpts.
+
+User Query: "{request.query}"
+
+Below are the most relevant excerpts from company 10-K filings:
+
+{context}
+
+Please provide a clear, professional analysis that:
+1. Directly answers the user's question
+2. Synthesizes information across all excerpts
+3. Highlights key risks, opportunities, or insights
+4. Uses specific details from the text
+5. Keeps it concise (2-3 paragraphs)
+
+Respond as a financial analyst would - professional, analytical, and focused on investment-relevant insights."""
+
+        # Call Claude
+        response = completion(
+            model=model_name,
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=800,
+            temperature=0.3
+        )
+
+        summary = response.choices[0].message.content
+
+        logger.info(f"Summary generated successfully ({len(summary)} chars)")
+
+        return SummarizeResponse(
+            success=True,
+            summary=summary,
+            query=request.query
+        )
+
+    except Exception as e:
+        logger.error(f"Summarize error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate summary: {str(e)}"
         )
