@@ -318,50 +318,59 @@ def render_semantic_search_tab(api_base_url: str):
                 )
 
             if results and results.get("success"):
-                result_list = results.get("results", [])
-                result_count = results.get("results_count", 0)
-
-                if result_count > 0:
-                    # Check if results are low quality (all scores below 0.5)
-                    max_score = max([r.get("relevance_score", 0) for r in result_list]) if result_list else 0
-
-                    if max_score < 0.5:
-                        st.warning(f"⚠️ Found {result_count} result(s), but relevance scores are low.")
-                        st.info("""
-                        **Tip:** Form 13F filings typically don't contain detailed investment strategies or commentary.
-
-                        If you're looking for:
-                        - Investment strategies → Not disclosed in 13F filings
-                        - Portfolio positions → Use the **Chat** or **Portfolio** tabs instead
-                        - Holdings analysis → Try the SQL query interface
-
-                        Best semantic search uses: manager contact info, amendments, regulatory disclosures
-                        """)
-                    else:
-                        st.success(f"Found {result_count} result{'s' if result_count != 1 else ''}")
-
-                    # AI Summarization button
-                    if max_score >= 0.5:  # Only show if results are decent quality
-                        st.markdown("---")
-                        if st.button("✨ Summarize with AI", type="secondary", use_container_width=True,
-                                   help="Generate a financial analyst-style summary using Claude (~$0.01 cost)"):
-                            with st.spinner("AI is analyzing the results..."):
-                                summary = summarize_results(api_base_url, search_query, result_list)
-
-                            if summary and summary.get("success"):
-                                st.info("**✨ AI Financial Analysis** (Powered by Claude)")
-                                st.markdown(summary.get("summary", ""))
-                            else:
-                                st.error("Failed to generate summary. Please try again.")
-                        st.markdown("---")
-
-                    # Display results
-                    for i, result in enumerate(result_list, 1):
-                        display_search_result(result, i)
-                else:
-                    st.info("No results found. Try a different query or adjust filters.")
+                # Store results in session state so they persist across reruns
+                st.session_state["search_results"] = results.get("results", [])
+                st.session_state["search_query"] = search_query
+                st.session_state["search_result_count"] = results.get("results_count", 0)
             else:
                 st.error("Search failed. Please try again.")
+                st.session_state["search_results"] = None
+
+    # Display results if they exist in session state
+    if "search_results" in st.session_state and st.session_state["search_results"]:
+        result_list = st.session_state["search_results"]
+        search_query = st.session_state["search_query"]
+        result_count = st.session_state["search_result_count"]
+
+        if result_count > 0:
+            # Check if results are low quality (all scores below 0.5)
+            max_score = max([r.get("relevance_score", 0) for r in result_list]) if result_list else 0
+
+            if max_score < 0.5:
+                st.warning(f"⚠️ Found {result_count} result(s), but relevance scores are low.")
+                st.info("""
+                **Tip:** Form 13F filings typically don't contain detailed investment strategies or commentary.
+
+                If you're looking for:
+                - Investment strategies → Not disclosed in 13F filings
+                - Portfolio positions → Use the **Chat** or **Portfolio** tabs instead
+                - Holdings analysis → Try the SQL query interface
+
+                Best semantic search uses: manager contact info, amendments, regulatory disclosures
+                """)
+            else:
+                st.success(f"Found {result_count} result{'s' if result_count != 1 else ''}")
+
+            # AI Summarization button
+            if max_score >= 0.5:  # Only show if results are decent quality
+                st.markdown("---")
+                if st.button("✨ Summarize with AI", type="secondary", use_container_width=True,
+                           help="Generate a financial analyst-style summary using Claude (~$0.01 cost)"):
+                    with st.spinner("AI is analyzing the results..."):
+                        summary = summarize_results(api_base_url, search_query, result_list)
+
+                    if summary and summary.get("success"):
+                        st.info("**✨ AI Financial Analysis** (Powered by Claude)")
+                        st.markdown(summary.get("summary", ""))
+                    else:
+                        st.error("Failed to generate summary. Please try again.")
+                st.markdown("---")
+
+            # Display results
+            for i, result in enumerate(result_list, 1):
+                display_search_result(result, i)
+        else:
+            st.info("No results found. Try a different query or adjust filters.")
 
 
 def render_filing_text_explorer_tab(api_base_url: str):
