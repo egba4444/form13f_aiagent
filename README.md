@@ -1,16 +1,39 @@
-# Form 13F AI Agent (SQL-First Architecture)
+# Form 13F AI Agent
 
-A natural language interface to SEC Form 13F institutional holdings data using Claude 3.5 Sonnet for SQL generation and query answering.
+> **Ask questions about institutional investor holdings in natural language**
 
-## 🎯 Project Overview
+A production-ready AI agent that transforms complex SEC Form 13F institutional holdings data into an interactive, conversational interface powered by Claude 3.5 Sonnet.
 
-This system allows users to ask natural language questions about institutional investor holdings, and the AI agent generates and executes SQL queries to retrieve precise answers.
+<div align="center">
 
-**Example Queries:**
-- "How many AAPL shares did Berkshire Hathaway hold in Q4 2024?"
-- "What were BlackRock's top 5 holdings by value?"
-- "Show me all managers who held more than 10M shares of TSLA"
-- "What was the total value of Vanguard's portfolio in Q3 2024?"
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit)](https://form13faiagent-ia8jkydleycwabcjzeme4m.streamlit.app/)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
+
+**[🚀 Try Live Demo](https://form13faiagent-ia8jkydleycwabcjzeme4m.streamlit.app/) • [📖 Documentation](docs/) • [🐛 Report Issue](https://github.com/egba4444/form13f_aiagent/issues)**
+
+</div>
+
+## ✨ What Can You Do?
+
+Ask questions about institutional investor holdings in plain English and get instant, accurate answers backed by SQL-powered data analysis:
+
+- 💰 **"How many AAPL shares did Berkshire Hathaway hold in Q4 2024?"**
+- 📊 **"What were BlackRock's top 5 holdings by value?"**
+- 🔍 **"Show me all managers who held more than 10M shares of TSLA"**
+- 📈 **"What was the total value of Vanguard's portfolio in Q3 2024?"**
+- 🤖 **"Find filings that mention artificial intelligence"** (semantic search)
+
+## 🎯 Key Features
+
+- **🗣️ Natural Language Interface** - Ask questions like you're talking to an analyst
+- **🔍 SQL-First Architecture** - Generates precise SQL queries for structured data (90% of queries)
+- **🧠 RAG Semantic Search** - Search filing commentary and disclosures (10% of queries)
+- **📊 Interactive Visualizations** - Portfolio composition, ownership analysis, top movers
+- **🔒 Enterprise Security** - Multi-layer SQL validation, authentication, rate limiting
+- **🚀 Production Ready** - Deployed on Railway (API) + Streamlit Cloud (UI)
+- **📱 Multi-Modal Access** - REST API, Python SDK, and web interface
 
 ## 🏗️ Architecture
 
@@ -215,7 +238,9 @@ Add in Streamlit Cloud settings:
 API_BASE_URL=https://your-app.up.railway.app
 ```
 
-**Done!** Your UI will be live at `https://your-username-form13f-aiagent.streamlit.app`
+**Done!** Your UI will be live at a custom subdomain.
+
+**Production Example**: [https://form13faiagent-ia8jkydleycwabcjzeme4m.streamlit.app/](https://form13faiagent-ia8jkydleycwabcjzeme4m.streamlit.app/)
 
 **Note**: Streamlit Cloud uses `requirements.txt` for dependencies, which is included in the repository.
 
@@ -457,4 +482,8 @@ For questions or feedback, please open an issue.
 
 **Status**: ✅ Phases 1-8 Complete - Production Ready
 **Architecture**: SQL-First + RAG Semantic Search
-**Live Demo**: [Streamlit Cloud](https://your-app.streamlit.app) | [API](https://your-app.up.railway.app)
+**Live Demo**: [Streamlit App](https://form13faiagent-ia8jkydleycwabcjzeme4m.streamlit.app/)
+
+---
+
+Made with Claude 3.5 Sonnet | MIT License
