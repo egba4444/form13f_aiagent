@@ -29,17 +29,18 @@ except ImportError:
 
 # Configuration
 # Use Railway API in production, local API in development
-# Check ENVIRONMENT variable first, then fall back to .env file detection
-ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
-
-if ENVIRONMENT == "development" or (ENVIRONMENT == "production" and os.path.exists(".env")):
-    # Local development
-    API_BASE_URL = "http://localhost:8000"
-else:
-    # Production - use Railway API
-    API_BASE_URL = os.getenv("API_BASE_URL", "https://form13f-aiagent-production.up.railway.app")
-
+# Default to Railway API - only use localhost if explicitly set
+API_BASE_URL = os.getenv("API_BASE_URL", "https://form13f-aiagent-production.up.railway.app")
 TIMEOUT = 120.0  # 2 minutes timeout for agent queries
+
+# Override to localhost ONLY if ENVIRONMENT=development is explicitly set
+if os.getenv("ENVIRONMENT") == "development":
+    API_BASE_URL = "http://localhost:8000"
+    print(f"🔧 Development mode: Using local API at {API_BASE_URL}")
+
+# Debug: Log the API URL being used
+print(f"🌐 API Base URL: {API_BASE_URL}")
+print(f"📍 Environment: {os.getenv('ENVIRONMENT', 'not set')}")
 
 # Page configuration
 st.set_page_config(
