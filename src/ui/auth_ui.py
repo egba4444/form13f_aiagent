@@ -71,6 +71,10 @@ def show_login_page(api_base_url: str) -> bool:
     </div>
     """, unsafe_allow_html=True)
 
+    # Debug: Show API URL
+    with st.expander("🔧 Debug Info"):
+        st.code(f"API URL: {api_base_url}")
+
     # Create tabs for login/signup
     tab1, tab2 = st.tabs(["Sign In", "Sign Up"])
 
@@ -120,7 +124,8 @@ def _show_signin_form(api_base_url: str):
                         st.error(f"❌ {error_detail}")
 
             except Exception as e:
-                st.error(f"❌ Error: {str(e)}")
+                st.error(f"❌ Error connecting to API at {api_base_url}/api/v1/auth/signin")
+                st.error(f"❌ Details: {str(e)}")
 
 
 def _show_signup_form(api_base_url: str):
@@ -176,7 +181,8 @@ def _show_signup_form(api_base_url: str):
                         st.error(f"❌ {error_detail}")
 
             except Exception as e:
-                st.error(f"❌ Error: {str(e)}")
+                st.error(f"❌ Error connecting to API at {api_base_url}/api/v1/auth/signup")
+                st.error(f"❌ Details: {str(e)}")
 
 
 def show_logout_button():
