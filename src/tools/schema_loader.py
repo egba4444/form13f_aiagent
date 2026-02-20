@@ -52,7 +52,7 @@ class SchemaLoader:
         lines.append("")
 
         # Get tables in logical order
-        table_order = ['managers', 'issuers', 'filings', 'holdings']
+        table_order = ['managers', 'issuers', 'filings', 'holdings', 'companies']
         tables = [t for t in table_order if t in self.metadata.tables]
 
         for table_name in tables:
@@ -85,7 +85,8 @@ class SchemaLoader:
             'managers': 'Institutional investment managers (filers)',
             'issuers': 'Security issuers (companies)',
             'filings': 'Form 13F filing metadata',
-            'holdings': 'Individual security positions within filings'
+            'holdings': 'Individual security positions within filings',
+            'companies': 'Public companies with CIK-to-ticker mapping (for 10-K lookups)'
         }
         if table_name in descriptions:
             lines.append(descriptions[table_name])
@@ -167,6 +168,11 @@ class SchemaLoader:
             "GROUP BY m.cik, m.name",
             "ORDER BY total_value DESC",
             "LIMIT 10;",
+            "",
+            "-- Look up company CIK by ticker (for 10-K semantic search)",
+            "SELECT cik, ticker, company_name FROM companies WHERE ticker = 'AAPL';",
+            "-- Or search by company name",
+            "SELECT cik, ticker, company_name FROM companies WHERE company_name ILIKE '%apple%';",
             "```",
             "",
             "## Common Query Patterns",
@@ -198,7 +204,7 @@ class SchemaLoader:
         lines.append("DATABASE SCHEMA:")
         lines.append("")
 
-        for table_name in ['managers', 'issuers', 'filings', 'holdings']:
+        for table_name in ['managers', 'issuers', 'filings', 'holdings', 'companies']:
             if table_name not in self.metadata.tables:
                 continue
 

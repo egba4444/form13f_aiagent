@@ -307,10 +307,12 @@ class VectorStore:
             )
 
         if filter_section:
+            # Section stored as "10-K/Item 1A" in content_type field
+            section_value = f"10-K/{filter_section}"
             conditions.append(
                 FieldCondition(
-                    key="section_name",
-                    match=MatchValue(value=filter_section)
+                    key="content_type",
+                    match=MatchValue(value=section_value)
                 )
             )
 

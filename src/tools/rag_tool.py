@@ -63,35 +63,33 @@ class RAGRetrievalTool:
             "type": "function",
             "function": {
                 "name": "search_filing_text",
-                "description": """Search through Form 13F filing text content using semantic search.
+                "description": """Search through SEC filing text content using semantic search.
 
-IMPORTANT: Form 13F filings are regulatory documents that report holdings. They typically
-do NOT contain detailed investment strategies, philosophies, or market commentary.
+Supports TWO types of filings:
 
-Best use cases:
+## Form 10-K Annual Reports (Rich Qualitative Data)
+Best for finding:
+- Risk factors and business challenges (Item 1A)
+- Business descriptions and strategy (Item 1)
+- Management discussion and analysis (Item 7)
+- Market risk disclosures (Item 7A)
+- Competition analysis, regulatory risks, economic outlook
+
+Use 10-K filters (filter_cik_company, filter_section, filter_year) to narrow results.
+Available sections: Item 1, Item 1A, Item 1B, Item 2, Item 3, Item 7, Item 7A, Item 8
+
+## Form 13F Holdings Reports (Limited Text)
+Contains only:
 - Manager contact information and addresses
-- Amendment notices and explanations
-- Regulatory disclosures about fund structure
-- Information about relying advisers or third-party management
+- Amendment notices and regulatory disclosures
 - Filing corrections or updates
 
-Limited/No data for:
-- Investment strategies or philosophies (not in 13F filings)
-- Investment theses or rationales (not required by SEC)
-- Market commentary or analysis (not in 13F filings)
-- Future investment plans (not disclosed in 13F)
+13F filings do NOT contain investment strategies, commentary, or rationales.
 
-The search understands meaning, not just keywords. Returns the most relevant text excerpts
-with their source filings.
+The search understands meaning, not just keywords. Returns relevant text excerpts
+with source filing metadata.
 
-Content types available:
-- cover_page_info: Filing manager contact details and basic info
-- explanatory_notes: Regulatory disclosures, fund structure notes, amendments
-- amendment_info: Reasons for filing amendments
-- other_documents: Additional exhibits and disclosures
-
-For analyzing holdings data (positions, values, shares, portfolio composition),
-use the query_database tool instead - that's where the actual investment data is.
+For analyzing holdings data (positions, values, shares), use query_database instead.
 """,
                 "parameters": {
                     "type": "object",
@@ -115,6 +113,19 @@ use the query_database tool instead - that's where the actual investment data is
                             "type": "string",
                             "description": "Optional: Filter by content type (cover_page_info, explanatory_notes, amendment_info, other_documents)",
                             "enum": ["cover_page_info", "explanatory_notes", "amendment_info", "other_documents"]
+                        },
+                        "filter_cik_company": {
+                            "type": "string",
+                            "description": "Optional: Filter 10-K results by company CIK (e.g., '0000320193' for Apple). Use query_database first to look up CIK if needed."
+                        },
+                        "filter_section": {
+                            "type": "string",
+                            "description": "Optional: Filter 10-K results by section name",
+                            "enum": ["Item 1", "Item 1A", "Item 1B", "Item 2", "Item 3", "Item 7", "Item 7A", "Item 8"]
+                        },
+                        "filter_year": {
+                            "type": "integer",
+                            "description": "Optional: Filter 10-K results by filing year (e.g., 2023, 2024)"
                         }
                     },
                     "required": ["query"]
