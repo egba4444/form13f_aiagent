@@ -770,10 +770,10 @@ def main():
     # Main tabs
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "💬 Chat",
+        "🔎 Semantic Search",
         "📈 Portfolio Explorer",
         "🔍 Security Analysis",
         "🚀 Top Movers",
-        "🔎 Semantic Search",
         "📄 Filing Explorer"
     ])
 
@@ -781,16 +781,16 @@ def main():
         render_chat_tab()
 
     with tab2:
-        render_portfolio_explorer_tab()
+        render_semantic_search_tab(API_BASE_URL)
 
     with tab3:
-        render_security_analysis_tab()
+        render_portfolio_explorer_tab()
 
     with tab4:
-        render_top_movers_tab()
+        render_security_analysis_tab()
 
     with tab5:
-        render_semantic_search_tab(API_BASE_URL)
+        render_top_movers_tab()
 
     with tab6:
         render_filing_text_explorer_tab(API_BASE_URL)
