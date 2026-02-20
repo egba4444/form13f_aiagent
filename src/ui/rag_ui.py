@@ -12,7 +12,10 @@ import pandas as pd
 
 def semantic_search(api_base_url: str, query: str, top_k: int = 5,
                    filter_accession: Optional[str] = None,
-                   filter_content_type: Optional[str] = None) -> Optional[Dict[str, Any]]:
+                   filter_content_type: Optional[str] = None,
+                   filter_cik_company: Optional[str] = None,
+                   filter_section: Optional[str] = None,
+                   filter_year: Optional[int] = None) -> Optional[Dict[str, Any]]:
     """
     Execute semantic search via API.
 
@@ -22,6 +25,9 @@ def semantic_search(api_base_url: str, query: str, top_k: int = 5,
         top_k: Number of results to return
         filter_accession: Optional accession number filter
         filter_content_type: Optional content type filter
+        filter_cik_company: Optional company CIK filter (10-K)
+        filter_section: Optional section filter (10-K)
+        filter_year: Optional filing year filter (10-K)
 
     Returns:
         Search results dict or None if error
@@ -36,6 +42,12 @@ def semantic_search(api_base_url: str, query: str, top_k: int = 5,
             payload["filter_accession"] = filter_accession
         if filter_content_type:
             payload["filter_content_type"] = filter_content_type
+        if filter_cik_company:
+            payload["filter_cik_company"] = filter_cik_company
+        if filter_section:
+            payload["filter_section"] = filter_section
+        if filter_year:
+            payload["filter_year"] = filter_year
 
         response = httpx.post(
             f"{api_base_url}/api/v1/search/semantic",
@@ -225,40 +237,45 @@ def render_semantic_search_tab(api_base_url: str):
     """
     st.subheader("🔍 Semantic Search")
     st.markdown("""
-    Search filing text content using AI-powered semantic search.
+    Search SEC filing text using AI-powered semantic search.
     This understands the **meaning** of your query, not just keywords.
 
-    **⚠️ Important Limitations:**
-    Form 13F filings are regulatory documents that report holdings. They typically **do NOT contain**:
-    - Investment strategies or philosophies
-    - Investment theses or market commentary
-    - Future plans or outlooks
+    **📊 Form 10-K Annual Reports** (Rich qualitative data):
+    - Risk factors, business challenges, competitive threats
+    - Management Discussion & Analysis (MD&A)
+    - Business strategy and market outlook
 
-    **✅ Best used for:**
-    - Manager contact information
-    - Amendment notices and explanations
-    - Filing structure and disclosures
-
-    **For investment holdings and position data, use the Chat or Portfolio tabs instead.**
+    **📋 Form 13F Holdings Reports** (Limited text):
+    - Manager contact information, amendment notices
+    - Does NOT contain investment strategies or commentary
     """)
 
     # Example queries (outside form)
     st.markdown("**Example Queries:**")
-    example_col1, example_col2, example_col3 = st.columns(3)
+    example_col1, example_col2, example_col3, example_col4 = st.columns(4)
 
     with example_col1:
-        if st.button("📋 Filing Manager Info", use_container_width=True):
-            st.session_state["example_query"] = "filing manager"
+        if st.button("⚠️ AI Regulation Risk", use_container_width=True):
+            st.session_state["example_query"] = "AI regulation artificial intelligence risk"
+            st.session_state["example_section"] = "Item 1A"
             st.rerun()
 
     with example_col2:
-        if st.button("🏢 Relying Advisers", use_container_width=True):
-            st.session_state["example_query"] = "relying adviser"
+        if st.button("🔗 Supply Chain Risk", use_container_width=True):
+            st.session_state["example_query"] = "supply chain disruption manufacturing"
+            st.session_state["example_section"] = "Item 1A"
             st.rerun()
 
     with example_col3:
-        if st.button("🔒 Confidential Treatment", use_container_width=True):
-            st.session_state["example_query"] = "confidential treatment"
+        if st.button("📈 Competition", use_container_width=True):
+            st.session_state["example_query"] = "competition competitive pressure market share"
+            st.session_state["example_section"] = "Item 1A"
+            st.rerun()
+
+    with example_col4:
+        if st.button("🔒 Cybersecurity", use_container_width=True):
+            st.session_state["example_query"] = "cybersecurity data breach security"
+            st.session_state["example_section"] = "Item 1A"
             st.rerun()
 
     # Use form so Enter key submits the search
@@ -287,8 +304,62 @@ def render_semantic_search_tab(api_base_url: str):
                 help="Number of results to return"
             )
 
-        # Advanced filters
-        with st.expander("⚙️ Advanced Filters"):
+        # 10-K Filters (prominent)
+        st.markdown("**10-K Filters:**")
+        col_10k_1, col_10k_2, col_10k_3 = st.columns(3)
+
+        # Company options
+        company_options = {
+            "All Companies": None,
+            "Apple (AAPL)": "0000320193",
+            "Microsoft (MSFT)": "0000789019",
+            "Alphabet (GOOGL)": "0001652044",
+            "Amazon (AMZN)": "0001018724",
+            "NVIDIA (NVDA)": "0001045810",
+            "Meta (META)": "0001326801",
+            "Berkshire Hathaway (BRK)": "0001067983",
+            "Tesla (TSLA)": "0001318605",
+            "Visa (V)": "0001403161",
+            "UnitedHealth (UNH)": "0000731766",
+        }
+
+        with col_10k_1:
+            selected_company = st.selectbox(
+                "Company",
+                options=list(company_options.keys()),
+                help="Filter by company (10-K filings)"
+            )
+            filter_cik_company = company_options[selected_company]
+
+        with col_10k_2:
+            # Get default section from example button if set
+            default_section_idx = 0
+            if st.session_state.get("example_section"):
+                section_options = ["All Sections", "Item 1", "Item 1A", "Item 1B", "Item 2", "Item 3", "Item 7", "Item 7A", "Item 8"]
+                if st.session_state["example_section"] in section_options:
+                    default_section_idx = section_options.index(st.session_state["example_section"])
+                st.session_state["example_section"] = ""
+
+            filter_section = st.selectbox(
+                "10-K Section",
+                options=["All Sections", "Item 1", "Item 1A", "Item 1B", "Item 2", "Item 3", "Item 7", "Item 7A", "Item 8"],
+                index=default_section_idx,
+                help="Item 1: Business, Item 1A: Risk Factors, Item 7: MD&A, Item 7A: Market Risk"
+            )
+            if filter_section == "All Sections":
+                filter_section = None
+
+        with col_10k_3:
+            filter_year = st.selectbox(
+                "Filing Year",
+                options=["All Years", 2025, 2024, 2023],
+                help="Filter by 10-K filing year"
+            )
+            if filter_year == "All Years":
+                filter_year = None
+
+        # Advanced filters (collapsed)
+        with st.expander("⚙️ Additional Filters (13F)"):
             col_a, col_b = st.columns(2)
 
             with col_a:
@@ -300,13 +371,13 @@ def render_semantic_search_tab(api_base_url: str):
 
             with col_b:
                 filter_content_type = st.selectbox(
-                    "Filter by section type",
-                    options=["All Sections", "cover_page_info", "explanatory_notes", "information_table"],
-                    help="Optional: Search only in specific section types"
+                    "13F Section Type",
+                    options=["All Types", "cover_page_info", "explanatory_notes", "information_table"],
+                    help="Optional: For 13F filings only"
                 )
 
-                # Convert "All Sections" to None
-                if filter_content_type == "All Sections":
+                # Convert "All Types" to None
+                if filter_content_type == "All Types":
                     filter_content_type = None
 
         # Form submit button - Enter key will trigger this
@@ -323,7 +394,10 @@ def render_semantic_search_tab(api_base_url: str):
                 search_query,
                 top_k=top_k,
                 filter_accession=filter_accession if filter_accession else None,
-                filter_content_type=filter_content_type
+                filter_content_type=filter_content_type,
+                filter_cik_company=filter_cik_company,
+                filter_section=filter_section,
+                filter_year=filter_year
             )
 
         if results and results.get("success"):
@@ -348,14 +422,12 @@ def render_semantic_search_tab(api_base_url: str):
             if max_score < 0.5:
                 st.warning(f"⚠️ Found {result_count} result(s), but relevance scores are low.")
                 st.info("""
-                **Tip:** Form 13F filings typically don't contain detailed investment strategies or commentary.
+                **Tips for better results:**
+                - **10-K filings**: Try filtering by Section (Item 1A for risks, Item 7 for MD&A)
+                - **Be specific**: "supply chain manufacturing risk" works better than "risks"
+                - **13F filings**: Only contain regulatory boilerplate, not investment commentary
 
-                If you're looking for:
-                - Investment strategies → Not disclosed in 13F filings
-                - Portfolio positions → Use the **Chat** or **Portfolio** tabs instead
-                - Holdings analysis → Try the SQL query interface
-
-                Best semantic search uses: manager contact info, amendments, regulatory disclosures
+                For holdings data, use the **Chat** or **Portfolio** tabs instead.
                 """)
             else:
                 st.success(f"Found {result_count} result{'s' if result_count != 1 else ''}")
