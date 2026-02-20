@@ -19,11 +19,16 @@ A production-ready AI agent that transforms complex SEC Form 13F institutional h
 
 Ask questions about institutional investor holdings in plain English and get instant, accurate answers backed by SQL-powered data analysis:
 
+**13F Holdings (SQL):**
 - 💰 **"How many AAPL shares did Berkshire Hathaway hold in Q4 2024?"**
 - 📊 **"What were BlackRock's top 5 holdings by value?"**
 - 🔍 **"Show me all managers who held more than 10M shares of TSLA"**
 - 📈 **"What was the total value of Vanguard's portfolio in Q3 2024?"**
-- 🤖 **"Find filings that mention artificial intelligence"** (semantic search)
+
+**10-K Annual Reports (Semantic Search):**
+- 🤖 **"What are Apple's main risk factors related to supply chain?"**
+- 📉 **"Find companies mentioning recession risks in their 10-K filings"**
+- 🏢 **"What does Microsoft say about competition in cloud services?"**
 
 ## 🎯 Key Features
 
@@ -39,28 +44,30 @@ Ask questions about institutional investor holdings in plain English and get ins
 
 ```
 User Query (Natural Language)
-    ↓
-Claude 3.5 Sonnet Agent
-    ↓
-Generate SQL Query
-    ↓
-Execute on PostgreSQL
-    ↓
-Format Results
-    ↓
-Claude Generates Natural Language Answer
+         ↓
+Claude 3.5 Sonnet Agent (with tool use)
+         ↓
+    ┌────┴────┐
+    ↓         ↓
+SQL Tool   RAG Tool
+    ↓         ↓
+PostgreSQL  Qdrant
+(13F data)  (10-K text)
+    ↓         ↓
+    └────┬────┘
+         ↓
+Claude Formats Natural Language Answer
 ```
 
 **Key Components:**
-- **Data Ingestion**: Parse 13F-HR XML filings (stored in `data/raw/`)
+- **Data Ingestion**: Parse 13F-HR XML filings + 10-K annual reports from SEC EDGAR
 - **PostgreSQL Database**: Structured storage of holdings and metadata
+- **Qdrant Vector DB**: Semantic search over 10-K filing text (risk factors, MD&A)
 - **SQL Query Tool**: Claude generates safe, validated SQL queries
-- **Agent**: Natural language → SQL → Answer pipeline
+- **RAG Search Tool**: Claude searches 10-K sections by meaning
+- **Agent**: Orchestrates tools based on query type (quantitative vs qualitative)
 - **API**: FastAPI backend with REST endpoints and analytics
 - **UI**: Streamlit multi-tab interface with interactive visualizations
-
-**Future Enhancement (Phase 7):**
-- Add RAG/vector store for unstructured commentary and explanatory notes
 
 ## 🛠️ Technology Stack
 
@@ -70,6 +77,8 @@ Claude Generates Natural Language Answer
 | LLM Provider | LiteLLM (100+ providers) |
 | LLM | Claude 3.5 Sonnet (default) |
 | Database | PostgreSQL 16+ (Supabase) |
+| Vector Database | Qdrant Cloud (semantic search) |
+| Embeddings | sentence-transformers/all-MiniLM-L6-v2 |
 | API Framework | FastAPI |
 | UI | Streamlit |
 | Visualizations | Plotly |
@@ -268,12 +277,13 @@ form13f_aiagent/
 │   └── versions/
 │
 ├── src/
-│   ├── agent/            # Claude agent with SQL tool
+│   ├── agent/            # Claude agent orchestrator
 │   ├── api/              # FastAPI backend
 │   ├── db/               # Database layer (SQLAlchemy)
-│   ├── ingestion/        # SEC data ingestion
+│   ├── ingestion/        # SEC data ingestion (13F + 10-K)
 │   ├── models/           # Pydantic data models
-│   ├── tools/            # SQL query tool
+│   ├── rag/              # RAG components (embeddings, vector store)
+│   ├── tools/            # SQL + RAG search tools
 │   ├── ui/               # Streamlit interface
 │   └── utils/
 │
@@ -376,19 +386,28 @@ FastAPI provides dedicated analytics endpoints:
 See API docs at `/docs` for full endpoint documentation.
 
 ### 7. RAG/Semantic Search (Phase 8 - Completed)
-The system includes semantic search over Form 13F filing text:
-- Vector database (Qdrant) stores filing text embeddings
-- AI-powered semantic search finds relevant sections
-- Search manager info, amendments, regulatory disclosures
+The system includes semantic search over SEC filing text using Qdrant vector database.
 
-**Important Limitation:**
-Form 13F filings are regulatory documents that report holdings. They typically **do NOT contain**:
-- Investment strategies or philosophies
-- Investment theses or market commentary
-- Future investment plans
+**Form 10-K Annual Reports (Rich Qualitative Data):**
+- Item 1: Business descriptions and strategy
+- Item 1A: Risk factors and challenges
+- Item 7: Management's Discussion & Analysis (MD&A)
+- Item 7A: Market risk disclosures
 
-Best used for: manager contact info, amendment explanations, fund structure disclosures.
-For actual investment analysis, use the SQL query tools instead.
+The agent can filter 10-K searches by:
+- `filter_cik_company`: Company CIK (e.g., Apple, Microsoft)
+- `filter_section`: Specific section (Item 1A, Item 7, etc.)
+- `filter_year`: Filing year
+
+**Example 10-K queries:**
+- "What are Apple's main supply chain risks?"
+- "Find companies mentioning recession concerns in their risk factors"
+- "What does Microsoft's MD&A say about cloud growth?"
+
+**Form 13F Holdings Reports (Limited Text):**
+13F filings contain only regulatory boilerplate - manager addresses, amendment notices.
+They do NOT contain investment strategies or market commentary.
+Use SQL queries for 13F holdings analysis instead.
 
 ## 📊 Example Usage
 
