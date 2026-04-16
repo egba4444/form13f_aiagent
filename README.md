@@ -6,12 +6,10 @@ A production-ready AI agent that transforms complex SEC Form 13F institutional h
 
 <div align="center">
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit)](https://form13faiagent-ia8jkydleycwabcjzeme4m.streamlit.app/)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
 
-**[🚀 Try Live Demo](https://form13faiagent-ia8jkydleycwabcjzeme4m.streamlit.app/) • [📖 Documentation](docs/) • [🐛 Report Issue](https://github.com/egba4444/form13f_aiagent/issues)**
 
 </div>
 
@@ -249,7 +247,7 @@ API_BASE_URL=https://your-app.up.railway.app
 
 **Done!** Your UI will be live at a custom subdomain.
 
-**Production Example**: [https://form13faiagent-ia8jkydleycwabcjzeme4m.streamlit.app/](https://form13faiagent-ia8jkydleycwabcjzeme4m.streamlit.app/)
+
 
 **Note**: Streamlit Cloud uses `requirements.txt` for dependencies, which is included in the repository.
 
